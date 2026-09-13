@@ -625,7 +625,7 @@
       },
       "data": {
         "purpose": "Non-runtime marker for Git delivery and self-heal acceptance",
-        "revision": "initial"
+        "revision": "gitops-auto-v1"
       }
     }
   ]

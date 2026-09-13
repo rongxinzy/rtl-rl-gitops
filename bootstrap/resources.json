@@ -271,7 +271,7 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": false,
+            "enabled": true,
             "selfHeal": true,
             "prune": false,
             "allowEmpty": false
@@ -357,7 +357,7 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": false,
+            "enabled": true,
             "selfHeal": true,
             "prune": false,
             "allowEmpty": false
@@ -443,7 +443,7 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": false,
+            "enabled": true,
             "selfHeal": true,
             "prune": false,
             "allowEmpty": false
@@ -529,7 +529,7 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": false,
+            "enabled": true,
             "selfHeal": true,
             "prune": false,
             "allowEmpty": false
@@ -615,7 +615,7 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": false,
+            "enabled": true,
             "selfHeal": true,
             "prune": false,
             "allowEmpty": false
@@ -701,7 +701,7 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": false,
+            "enabled": true,
             "selfHeal": true,
             "prune": false,
             "allowEmpty": false
@@ -787,7 +787,7 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": false,
+            "enabled": true,
             "selfHeal": true,
             "prune": false,
             "allowEmpty": false
