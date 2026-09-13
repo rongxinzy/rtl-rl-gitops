@@ -30,3 +30,10 @@ Tekton webhook CA bundle、聚合ClusterRole的rules、PVC绑定volumeName由对
 ## 边界
 
 Argo控制面、NewAPI入口与数据库、brain local-path存储仍存在单点。Git备份配置不备份数据库、训练产物或Secret。无cluster凭据的公开CI只能做静态验证；真实部署验收必须查看Application状态、实际Pod身份和服务健康。GitHub/网络故障期间已有工作负载继续运行，Argo无法取得新提交时不会把本地旧配置视为新发布。
+
+
+### GitHub remote-ref timeouts
+
+Argo CD 3.5.2 resolves remote refs with go-git; this does not run the git executable wrapper. The repo-server uses cluster DNS instead of fixed multi-region GitHub hostAliases, with ARGOCD_GIT_ATTEMPTS_COUNT=3 and ARGOCD_GIT_REQUEST_TIMEOUT=10s. This bounds nominal ref-request time to 30 seconds and retries transient failures. The existing bounded git wrapper remains for fetch/clone. TLS verification remains enabled. See upstream util/git/client.go and common/common.go at v3.5.2.
+
+For a bootstrap network repair while Argo cannot fetch Git, pause automatic sync on the root and argocd applications first, install only the reviewed repo-server deployment patch, verify rollout and current revision, then restore both previous automatic-sync settings. Do not restart inference, training or databases. Confirm all applications resolve the new revision; a healthy Pod alone is insufficient.
