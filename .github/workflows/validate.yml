@@ -16,6 +16,9 @@ jobs:
           persist-credentials: false
       - name: Validate static manifests
         run: python3 scripts/validate.py
+      - name: Test nonblocking catalog snapshots
+        working-directory: src
+        run: python3 -B -m unittest research.executor.test_catalog_cache
       - name: Test scalar relay recovery and validation
         run: python3 -B -m unittest discover -s src/infrastructure/swanlab -p 'test_*.py'
       - name: Test LLaMA-Factory checkpoint bridge

@@ -40,6 +40,8 @@ class Executor:
         self.state = Path(state).resolve()
         self.state.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.runner = runner or self.execute
+        from .catalog_cache import CatalogSnapshot
+        self._catalog_snapshot = CatalogSnapshot(self._build_catalog)
         self.recover()
 
     def recover(self):
@@ -172,6 +174,15 @@ class Executor:
             return {'available': False}
 
     def catalog(self):
+        # Planning metadata only; admission still performs full live validation.
+        return self._catalog_snapshot.read({
+            'actions': sorted(ACTIONS), 'artifacts': {'plan_ids': [], 'dataset_ids': [], 'evaluation_ids': []},
+            'dataset_summary': [], 'current_job': {'available': False},
+            'knowledge': {'ready': False}, 'l20': {'available': False},
+            'factory_remaining': None, 'proposal_schema': {}, 'constraints': {},
+        })
+
+    def _build_catalog(self):
         from .evidence import refresh
         refresh(self)
         artifacts = {}
@@ -198,7 +209,7 @@ class Executor:
                 result[label] = {'available': False}
         result['catalog'] = self.catalog()
         job_id = result.get('job', {}).get('job_id')
-        result['current_job'] = self.job_info()
+        result['current_job'] = result['catalog'].get('current_job', {'available': False})
         result['current_job_complete'] = bool(job_id and (self.root / 'runs' / job_id / 'job-complete.json').is_file())
         return result
 
