@@ -49,3 +49,5 @@ Locally built and imported on control/L20 before deployment; imagePullPolicy Nev
 - ops agent: d23af1f0535de7a4456015c9e131cd7101a9f96f2dc6a864fd74ba73f5785ec7; BASE_IMAGE=rtl-brain:20260913-v12, with the same updated providers.py as coordinator.
 
 Background router credentials are provisioned privately into the existing router and Brain Secrets; values are never in Git. Existing New API credentials stay protected. Ops CronJob is enabled after live read-only, admission-denial and isolated recovery acceptance. Production recovery allows only glm-router and rtl-operator; the canary is excluded from production configuration. The read-only and active acceptance jobs use separate state directories; production budgets are not reset for tests.
+
+Production ops observations run every minute; LLM plans are spaced 30 minutes apart (at most 48/day), below the 60/day hard cap so routine polling cannot exhaust the model budget before night. Candidate recovery still requires continuous failure and all safety gates; its next eligible model plan may add up to 30 minutes latency.
