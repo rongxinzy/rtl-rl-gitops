@@ -2,7 +2,7 @@
 
 ## 首次接管
 
-先恢复主机、持久数据、外部Secret和本地镜像；安装 `clusters/lab/argocd/resources.json`。再从 bootstrap 清单只应用 AppProject/根 Application，根应用会创建子应用。首次子应用保持手动，服务端 dry-run 和 Pod template 比对通过后逐组同步；每组确认健康再开启自动同步。
+先恢复主机、持久数据、外部Secret和本地镜像；安装 `clusters/lab/argocd/resources.json`。再从 bootstrap 清单只应用 AppProject/根 Application，根应用会创建子应用。本次首次接管已逐组手动验证，随后开启自动同步。重复迁移其他现存集群时，先将 bootstrap 中子应用的 automated.enabled 改为 false，服务端 dry-run 和 Pod template 比对通过后再逐组接管。
 
 根应用为 `rtl-lab`，子应用为 `rtl-argocd`、`rtl-tekton-platform`、`rtl-pipelines`、`rtl-brain`、`rtl-system`、`rtl-egress`、`rtl-new-api`。Argo 使用 annotation 跟踪，不改应用已有的 instance selector。
 
