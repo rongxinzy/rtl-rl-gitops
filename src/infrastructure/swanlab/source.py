@@ -39,9 +39,9 @@ def read(folder, relative):
         os.close(fd)
 
 
-def optional_json(folder, name):
+def optional_json(folder, name, reader=read):
     try:
-        value = json.loads(read(folder, name))
+        value = json.loads(reader(folder, name))
         return value if isinstance(value, dict) else {}
     except (OSError, ValueError, TypeError):
         return {}
@@ -51,7 +51,7 @@ def token(value, pattern=r'[A-Za-z0-9_.-]{1,160}'):
     return value if isinstance(value, str) and re.fullmatch(pattern, value) else None
 
 
-def metadata(folder, identity):
+def metadata(folder, identity, reader=read):
     result = {'model_repo': 'Qwen/Qwen3.8-27B'}
     if identity.get('backend') == 'llamafactory':
         result['training_backend'] = 'LLaMA-Factory'
@@ -79,14 +79,14 @@ def metadata(folder, identity):
         result['recipe_sha256'] = {key: recipes[key] for key in
             ('train.py', 'model.py', 'state.py', 'provenance.py', 'knowledge_data.py')
             if token(recipes.get(key), r'[a-f0-9]{64}')}
-    job = optional_json(folder, 'job.json')
+    job = optional_json(folder, 'job.json', reader)
     for key in ('image_id', 'freeze_id', 'knowledge_freeze_id'):
         pattern = r'sha256:[a-f0-9]{64}' if key == 'image_id' else r'[A-Za-z0-9_.-]{1,160}'
         if token(job.get(key), pattern):
             result[key] = job[key]
     if job.get('orchestrator') in ('tekton', 'brain', 'manual'):
         result['orchestrator'] = job['orchestrator']
-    preflight = optional_json(folder, 'run/data-preflight.json')
+    preflight = optional_json(folder, 'run/data-preflight.json', reader)
     data = {}
     for key in ('examples', 'dropped_overlength'):
         value = preflight.get(key)
@@ -96,7 +96,7 @@ def metadata(folder, identity):
     if isinstance(families, list):
         data['families'] = sorted({x for x in families[:1000] if token(x, r'[a-z][a-z0-9_]{0,63}')})
     result['data_preflight'] = data
-    report = optional_json(folder, 'run/model-report.json')
+    report = optional_json(folder, 'run/model-report.json', reader)
     model = {}
     for key in ('architecture', 'bitsandbytes'):
         if token(report.get(key)):
@@ -154,7 +154,8 @@ def observe_device():
     return result
 
 
-def collect(folder):
+def collect(folder, reader=read):
+    read = reader
     raw = read(folder, 'run/job.json')
     identity = json.loads(raw)
     binding = hashlib.sha256(raw).hexdigest()
@@ -216,7 +217,7 @@ def collect(folder):
     return {'job_id': folder.name, 'model_revision': REVISION, 'dataset_id': dataset,
             'job_sha256': binding, 'max_steps': max_steps, 'phase': phase,
             'training_complete': complete, 'steps': steps, 'events': events,
-            'metadata_version': 2, 'metadata': metadata(folder, identity)}
+            'metadata_version': 2, 'metadata': metadata(folder, identity, reader)}
 
 
 def snapshot(root=ROOT):

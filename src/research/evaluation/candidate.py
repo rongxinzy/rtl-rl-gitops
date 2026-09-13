@@ -82,10 +82,16 @@ def evaluate(a,bundle,run_local):
  if deadline is None:deadline=json.loads((path/'last-start.json').read_text()).get('deadline')
  if deadline is None or deadline-time.time()<1800:raise ValueError('less than 30 minutes before controller deadline')
  expected_id=evaluation_pins(path,cfg,schedule,identity,bundle['freeze_id'])
+ runtime=cfg.get('image_id')
+ if not isinstance(runtime,str) or not re.fullmatch(r'sha256:[0-9a-f]{64}',runtime):raise ValueError('missing immutable job runtime image')
+ requested=getattr(a,'runtime_image_id',None)
+ if requested is not None and requested!=runtime:raise ValueError('evaluation image conflicts with job pin')
+ identity['training_image_id']=runtime
+ if cfg.get('backend') is not None:identity['training_backend']=cfg['backend']
  baselines=[]
  for p in sorted((root/'research/evaluation/artifacts/runs').glob('qwen-base-*/result.json')):
   b=json.loads(p.read_text())
-  if b.get('kind')=='qwen_base_baseline' and b.get('freeze_id')==bundle['freeze_id'] and b.get('model_revision')==MODEL_REVISION and (not expected_id or file_hash(p)==expected_id):baselines.append((p,b))
+  if b.get('kind')=='qwen_base_baseline' and b.get('freeze_id')==bundle['freeze_id'] and b.get('model_revision')==MODEL_REVISION and (not expected_id or file_hash(p)==expected_id) and b.get('metadata',{}).get('training_image_id')==runtime:baselines.append((p,b))
  if not baselines:raise ValueError('no matching frozen Qwen base baseline')
  baseline_path,baseline=baselines[-1]
  identity.update(dataset_id=cfg.get('dataset_id') or (schedule.get('dataset_id') if schedule['job_id']==job_id else None))
@@ -94,6 +100,11 @@ def evaluate(a,bundle,run_local):
   cached=json.loads(output.read_text())
   if any(cached.get(k)!=identity[k] for k in ['job_id','adapter_sha256','job_config_sha256','recipe_sha256']):raise ValueError('cached comparison identity mismatch')
   if file_hash(cached['baseline_result_path'])!=cached['baseline_evaluation_id'] or file_hash(cached['candidate_result_path'])!=cached['candidate_evaluation_id']:raise ValueError('cached evaluation artifact changed')
+  old_base=json.loads(pathlib.Path(cached['baseline_result_path']).read_text())
+  old_candidate=json.loads(pathlib.Path(cached['candidate_result_path']).read_text())
+  if old_base.get('metadata',{}).get('training_image_id')!=runtime or old_candidate.get('metadata',{}).get('training_image_id')!=runtime:raise ValueError('cached comparison runtime mismatch')
+  checked=compare(old_base,old_candidate)
+  if any(cached.get(k)!=v for k,v in checked.items()):raise ValueError('cached comparison outcome mismatch')
   return {'status':'complete','comparison_path':str(output),'cached':True,**cached}
  candidate_summary=run_local(a,bundle,adapter=path/'adapter',metadata=identity)
  candidate_path=pathlib.Path(candidate_summary['result_path']);candidate=json.loads(candidate_path.read_text())

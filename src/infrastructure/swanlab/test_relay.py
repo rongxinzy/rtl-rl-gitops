@@ -62,6 +62,28 @@ class RelayTests(unittest.TestCase):
         self.assertEqual(self.receipt()['status'], 'completed')
         self.assertTrue(self.receipt()['sdk_finish_returned'])
 
+    def test_stale_source_never_uploads_or_finishes_from_cached_progress(self):
+        stale = self.snapshot(training_complete=True, source_stale=True)
+        fresh = self.snapshot(training_complete=True, source_stale=False)
+        def during_sleep(_):
+            self.sdk.init.assert_not_called()
+            self.sdk.log.assert_not_called()
+            self.sdk.finish.assert_not_called()
+            self.assertEqual(self.receipt()['status'], 'source_stale')
+        with patch.object(relay, 'snapshot', side_effect=[stale, fresh]), patch.object(relay.time, 'sleep', side_effect=during_sleep):
+            self.assertEqual(relay.worker(self.job['job_id']), 0)
+        self.sdk.log.assert_called_once()
+
+    def test_pro_pause_finishes_aborted_and_releases_worker_slot(self):
+        paused = self.snapshot(source='pro6000d', phase='paused', attempt_started_at=100)
+        with patch.object(relay, 'snapshot', return_value=paused):
+            self.assertEqual(relay.worker(self.job['job_id']), 0)
+        self.sdk.finish.assert_called_once_with(state='aborted')
+        receipt=self.receipt()
+        self.assertEqual(receipt['status'], 'paused')
+        self.assertEqual(receipt['attempt_started_at'], 100)
+        self.assertTrue(relay.receipt_terminal(paused['jobs'][0], receipt))
+
     def test_failed_job_is_crashed(self):
         with patch.object(relay, 'snapshot', return_value=self.snapshot(phase='failed')):
             self.assertEqual(relay.worker(self.job['job_id']), 0)

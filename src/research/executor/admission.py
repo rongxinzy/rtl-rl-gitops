@@ -34,12 +34,18 @@ def admit(executor, params):
     if not rows or not all(row.get('task_id') for row in rows):
         raise ValueError('Dataset missing registered tasks')
     resource_gate(executor.root, rows)
+    from .lf_profile import load_profile, config as lf_config
+    profile = load_profile(executor.root)
+    lf_job = None
+    if profile is not None:
+        evaluation = json.loads((gates / ('evaluation-' + params['evaluation_id'] + '.json')).read_text())
+        lf_job = lf_config(executor.root, dict(data=str(path.relative_to(executor.root)), data_sha256=dataset['data_sha256'], dataset_id=params['dataset_id'], max_steps=params.get('max_steps', 20), baseline_evaluation_id=params['evaluation_id'], evaluation_freeze_id=evaluation['freeze_id']), profile)
     scheduler = executor.root / 'state'
     with (scheduler / 'scheduler.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         job_path = executor.root / 'scheduling/job.json'
         current = json.loads(job_path.read_text())
-        job_id = 'brain-' + digest(params)[:24]
+        job_id = lf_job['job_id'] if lf_job else 'brain-' + digest(params)[:24]
         if current['job_id'] == job_id:
             return {'status': 'admitted', 'job_id': job_id, 'operator_patch_required': True}
         if not (executor.root / 'runs' / current['job_id'] / 'job-complete.json').is_file():
@@ -63,6 +69,8 @@ def admit(executor, params):
         rollback_registry = upgrade(executor, dataset)
         try:
             job = {'job_id': job_id, 'data': str(path.relative_to(executor.root)), 'data_sha256': dataset['data_sha256'], 'max_steps': params.get('max_steps', 20), 'max_completion_length': 512, 'save_steps': 10, 'purpose': 'Autonomous validated single-GPU GRPO admission', 'dataset_id': params['dataset_id'], 'baseline_evaluation_id': params['evaluation_id'], 'evaluation_freeze_id': evaluation['freeze_id']}
+            if lf_job is not None:
+                job = lf_job
             # Pending journal is durable before either file changes. Recovery repeats the
             # exact admission; old completed job stays harmless if interrupted before job commit.
             journal = {'previous_job_id': current['job_id'], 'job': job, 'evaluation_id': params['evaluation_id']}
