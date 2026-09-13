@@ -20,5 +20,8 @@ jobs:
         run: python3 -B -m unittest discover -s src/infrastructure/swanlab -p 'test_*.py'
       - name: Test LLaMA-Factory checkpoint bridge
         run: python3 -B -m unittest discover -s src/training/llamafactory -p 'test_*.py'
+      - name: Test trusted training profiles and legacy admission
+        working-directory: src
+        run: python3 -B -m unittest research.l20_worker.test_worker research.l20_worker.test_phase_control research.l20_worker.test_profiles research.executor.test_l20_branch research.executor.test_executor
       - name: Scan explicit public files and all reachable history
         run: python3 scripts/scan_public.py --root . --allowlist public-files.json --history
