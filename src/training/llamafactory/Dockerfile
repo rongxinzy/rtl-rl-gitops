@@ -2,7 +2,7 @@ ARG BASE_IMAGE=rtl-l20-training:20260913-cu130
 FROM ${BASE_IMAGE}
 COPY requirements-runtime.txt /opt/llamafactory/requirements-runtime.txt
 COPY wheels /opt/llamafactory/wheels
-RUN python3 -m pip uninstall -y spin \
+RUN /usr/bin/python3 -m pip uninstall --break-system-packages -y spin \
     && python3 -m pip install --no-index --find-links=/opt/llamafactory/wheels --no-deps -r /opt/llamafactory/requirements-runtime.txt /opt/llamafactory/wheels/llamafactory-0.9.6.dev0-py3-none-any.whl \
     && python3 -m pip check \
     && rm -rf /opt/llamafactory/wheels \
