@@ -615,6 +615,18 @@
           "Deny"
         ]
       }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "gitops-reconciliation-proof",
+        "namespace": "rtl-brain"
+      },
+      "data": {
+        "purpose": "Non-runtime marker for Git delivery and self-heal acceptance",
+        "revision": "initial"
+      }
     }
   ]
 }
