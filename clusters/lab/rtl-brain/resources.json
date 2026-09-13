@@ -981,7 +981,7 @@
                       },
                       {
                         "name": "PLAN_INTERVAL_SECONDS",
-                        "value": "900"
+                        "value": "1800"
                       }
                     ],
                     "resources": {
