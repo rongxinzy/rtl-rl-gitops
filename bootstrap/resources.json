@@ -175,7 +175,6 @@
           "targetRevision": "main",
           "path": "bootstrap",
           "directory": {
-            "recurse": false,
             "include": "*.json"
           }
         },
@@ -228,7 +227,6 @@
             ]
           },
           {
-            "group": "",
             "kind": "PersistentVolumeClaim",
             "jsonPointers": [
               "/spec/volumeName"
@@ -261,7 +259,6 @@
           "targetRevision": "main",
           "path": "clusters/lab/tekton-platform",
           "directory": {
-            "recurse": false,
             "include": "*.json"
           }
         },
@@ -314,7 +311,6 @@
             ]
           },
           {
-            "group": "",
             "kind": "PersistentVolumeClaim",
             "jsonPointers": [
               "/spec/volumeName"
@@ -347,7 +343,6 @@
           "targetRevision": "main",
           "path": "clusters/lab/rtl-egress",
           "directory": {
-            "recurse": false,
             "include": "*.json"
           }
         },
@@ -400,7 +395,6 @@
             ]
           },
           {
-            "group": "",
             "kind": "PersistentVolumeClaim",
             "jsonPointers": [
               "/spec/volumeName"
@@ -433,7 +427,6 @@
           "targetRevision": "main",
           "path": "clusters/lab/argocd",
           "directory": {
-            "recurse": false,
             "include": "*.json"
           }
         },
@@ -486,7 +479,6 @@
             ]
           },
           {
-            "group": "",
             "kind": "PersistentVolumeClaim",
             "jsonPointers": [
               "/spec/volumeName"
@@ -519,7 +511,6 @@
           "targetRevision": "main",
           "path": "clusters/lab/rtl-system",
           "directory": {
-            "recurse": false,
             "include": "*.json"
           }
         },
@@ -572,7 +563,6 @@
             ]
           },
           {
-            "group": "",
             "kind": "PersistentVolumeClaim",
             "jsonPointers": [
               "/spec/volumeName"
@@ -605,7 +595,6 @@
           "targetRevision": "main",
           "path": "clusters/lab/rtl-brain",
           "directory": {
-            "recurse": false,
             "include": "*.json"
           }
         },
@@ -658,7 +647,6 @@
             ]
           },
           {
-            "group": "",
             "kind": "PersistentVolumeClaim",
             "jsonPointers": [
               "/spec/volumeName"
@@ -691,7 +679,6 @@
           "targetRevision": "main",
           "path": "clusters/lab/new-api",
           "directory": {
-            "recurse": false,
             "include": "*.json"
           }
         },
@@ -744,7 +731,6 @@
             ]
           },
           {
-            "group": "",
             "kind": "PersistentVolumeClaim",
             "jsonPointers": [
               "/spec/volumeName"
@@ -777,7 +763,6 @@
           "targetRevision": "main",
           "path": "clusters/lab/rtl-pipelines",
           "directory": {
-            "recurse": false,
             "include": "*.json"
           }
         },
@@ -830,7 +815,6 @@
             ]
           },
           {
-            "group": "",
             "kind": "PersistentVolumeClaim",
             "jsonPointers": [
               "/spec/volumeName"
