@@ -122,6 +122,7 @@
   "src/training/llamafactory/Dockerfile",
   "src/training/llamafactory/README.md",
   "src/training/llamafactory/build_recipe.py",
+  "src/training/llamafactory/check_config.py",
   "src/training/llamafactory/check_processor.py",
   "src/training/llamafactory/requirements-runtime.txt",
   "src/training/llamafactory/state.py",
