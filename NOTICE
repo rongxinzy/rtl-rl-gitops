@@ -1,0 +1,8 @@
+RTL RL GitOps
+Copyright 2026 Rongxin contributors.
+
+This repository includes generated Kubernetes definitions from Argo CD v3.5.2
+(argoproj/argo-cd) and Tekton Pipelines v1.16.0 (tektoncd/pipeline).
+These upstream projects are distributed under the Apache License 2.0.
+Their existing notices and descriptions are retained in generated definitions.
+Model weights and third-party training corpora are not distributed here.

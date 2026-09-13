@@ -1,6 +1,8 @@
 [
   ".github/workflows/validate.yml",
   ".gitignore",
+  "LICENSE",
+  "NOTICE",
   "README.md",
   "bootstrap/resources.json",
   "clusters/lab/argocd/resources.json",

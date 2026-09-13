@@ -1035,7 +1035,8 @@
         "suspend": false,
         "timezone": "Asia/Shanghai",
         "trainingStart": "22:30",
-        "trainingStop": "07:30"
+        "trainingStop": "07:30",
+        "jobId": "grpo-night-20260913-v1"
       }
     }
   ]
