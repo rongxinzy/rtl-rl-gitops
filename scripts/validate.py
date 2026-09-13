@@ -17,3 +17,7 @@ for path in (ROOT/'clusters').rglob('*.json'):
   if kind in ('Namespace','PersistentVolumeClaim','CustomResourceDefinition'):
    assert 'Prune=false' in meta['annotations']['argocd.argoproj.io/sync-options'],identity
 print(json.dumps({'valid':True,'static_resources':count}))
+
+transport=json.loads((ROOT/"clusters/lab/argocd/resources.json").read_text())
+embedded=next(x for x in transport["items"] if x["kind"]=="ConfigMap" and x["metadata"]["name"]=="argocd-git-transport")["data"]["git"]
+assert embedded==(ROOT/"src/infrastructure/argocd/git-transport.sh").read_text(), "transport source and ConfigMap differ"

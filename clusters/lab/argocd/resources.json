@@ -45017,6 +45017,10 @@
         },
         "name": "argocd-cmd-params-cm",
         "namespace": "argocd"
+      },
+      "data": {
+        "controller.repo.server.timeout.seconds": "120",
+        "server.repo.server.timeout.seconds": "120"
       }
     },
     {
@@ -46497,7 +46501,7 @@
         },
         "name": "argocd-repo-server",
         "annotations": {
-          "rtl.ai/github-resolution-note": "2026-09-13: official GitHub meta.web endpoint; default DNS 20.205.243.166 TCP443 unreachable; TLS verification retained. Revalidate/remove when DNS route recovers."
+          "rtl.ai/github-resolution-note": "2026-09-13: bounded GitHub-only direct HTTPS retries across official meta.web addresses; TLS retained. Revalidate endpoint list and remove workaround when DNS/route recovers."
         },
         "namespace": "argocd"
       },
@@ -46511,6 +46515,9 @@
           "metadata": {
             "labels": {
               "app.kubernetes.io/name": "argocd-repo-server"
+            },
+            "annotations": {
+              "rtl.ai/git-transport-sha256": "88f6b21cd48b0248c48751b545d7497a88aa5e93be3b237f0b029929846eb81d"
             }
           },
           "spec": {
@@ -47063,6 +47070,12 @@
                   {
                     "mountPath": "/home/argocd/params",
                     "name": "argocd-cmd-params-cm"
+                  },
+                  {
+                    "name": "git-transport",
+                    "mountPath": "/usr/local/bin/git",
+                    "subPath": "git",
+                    "readOnly": true
                   }
                 ]
               }
@@ -47189,11 +47202,30 @@
                   "optional": true
                 },
                 "name": "argocd-cmd-params-cm"
+              },
+              {
+                "name": "git-transport",
+                "configMap": {
+                  "name": "argocd-git-transport",
+                  "defaultMode": 365
+                }
               }
             ],
             "hostAliases": [
               {
-                "ip": "20.27.177.113",
+                "ip": "20.201.28.151",
+                "hostnames": [
+                  "github.com"
+                ]
+              },
+              {
+                "ip": "20.27.177.119",
+                "hostnames": [
+                  "github.com"
+                ]
+              },
+              {
+                "ip": "20.205.243.166",
                 "hostnames": [
                   "github.com"
                 ]
@@ -47225,6 +47257,9 @@
           "metadata": {
             "labels": {
               "app.kubernetes.io/name": "argocd-server"
+            },
+            "annotations": {
+              "rtl.ai/repo-rpc-timeout": "120s"
             }
           },
           "spec": {
@@ -48075,6 +48110,9 @@
           "metadata": {
             "labels": {
               "app.kubernetes.io/name": "argocd-application-controller"
+            },
+            "annotations": {
+              "rtl.ai/repo-rpc-timeout": "120s"
             }
           },
           "spec": {
@@ -49128,6 +49166,17 @@
         "policyTypes": [
           "Ingress"
         ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "argocd-git-transport",
+        "namespace": "argocd"
+      },
+      "data": {
+        "git": "#!/bin/bash\nrun_bounded() {\n  local seconds=$1 group watch timer rc\n  shift\n  /usr/bin/setsid \"$@\" &\n  group=$!\n  (\n    sleep \"$seconds\" & timer=$!\n    trap 'kill \"$timer\" 2>/dev/null; exit 0' TERM\n    wait \"$timer\"\n    kill -TERM -- \"-$group\" 2>/dev/null\n    sleep 2 & timer=$!\n    wait \"$timer\"\n    kill -KILL -- \"-$group\" 2>/dev/null\n  ) >/dev/null 2>&1 &\n  watch=$!\n  wait \"$group\"; rc=$?\n  # Always reap remaining helpers even if the main git exits before its children.\n  kill -KILL -- \"-$group\" 2>/dev/null || true\n  kill -TERM \"$watch\" 2>/dev/null || true\n  wait \"$watch\" 2>/dev/null || true\n  return \"$rc\"\n}\n# Public GitHub HTTPS only; never substitute credentials or disable TLS checks.\ncase \"${1-}\" in fetch|clone|ls-remote) ;; *) exec /usr/bin/git \"$@\" ;; esac\nis_github=false\nfor arg in \"$@\"; do case \"$arg\" in https://github.com/*) is_github=true ;; esac; done\nif [ \"${1-}\" = fetch ]; then\n  remote=$(/usr/bin/git config --get remote.origin.url 2>/dev/null || true)\n  case \"$remote\" in https://github.com/*) is_github=true ;; esac\nfi\n[ \"$is_github\" = true ] || exec /usr/bin/git \"$@\"\nlast=124\n# All addresses were verified in GitHub's official /meta web list on 2026-09-13.\n# Revalidate this list as part of platform maintenance. TLS hostname stays github.com.\nfor ip in 20.201.28.151 20.27.177.119 20.205.243.166; do\n  run_bounded 2 /usr/bin/bash -c 'exec 3<>/dev/tcp/$1/443' -- \"$ip\" 2>/dev/null || continue\n  run_bounded 18 /usr/bin/git -c \"http.curloptResolve=github.com:443:$ip\" -c http.lowSpeedLimit=1024 -c http.lowSpeedTime=10 \"$@\"\n  last=$?\n  [ \"$last\" -eq 0 ] && exit 0\n  echo \"GitHub transport attempt failed; trying next verified endpoint\" >&2\ndone\nexit \"$last\"\n"
       }
     }
   ]
