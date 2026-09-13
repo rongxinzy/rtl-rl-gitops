@@ -77,7 +77,7 @@ class Executor:
             raise ValueError('Unsupported action')
         action = ALIASES.get(action, action)
         allowed = {
-            'knowledge.build': set(), 'knowledge.status': set(), 'l20.status': set(), 'l20.compare': {'job_id','run_uid'}, 'data.teacher': set(), 'l20.admit': {'dataset_id','evaluation_id','max_steps'}, 'inspect': set(), 'data.propose': {'proposal'}, 'data.compose': {'dataset_ids'}, 'data.plan': {'limit'}, 'data.run': {'plan_id'}, 'data.status': set(),
+            'knowledge.build': set(), 'knowledge.status': set(), 'l20.status': set(), 'l20.compare': {'job_id','run_uid'}, 'data.teacher': set(), 'l20.admit': {'dataset_id','evaluation_id','max_steps','profile_id'}, 'inspect': set(), 'data.propose': {'proposal'}, 'data.compose': {'dataset_ids'}, 'data.plan': {'limit'}, 'data.run': {'plan_id'}, 'data.status': set(),
             'evaluation.status': set(), 'evaluation.freeze': set(), 'evaluation.baseline': set(), 'evaluation.candidate': set(),
             'training.propose': {'dataset_id', 'evaluation_id', 'max_steps'},
             'training.admit': {'dataset_id', 'evaluation_id', 'max_steps'},
@@ -93,6 +93,8 @@ class Executor:
             params = {'proposal': normalize(params.get('proposal'))}
         if set(params) - allowed:
             raise ValueError('Unexpected parameter')
+        if 'profile_id' in params and (not isinstance(params['profile_id'],str) or not re.fullmatch(r'[a-z][a-z0-9-]{0,63}',params['profile_id'])):
+            raise ValueError('Invalid training profile')
         if action == 'l20.compare' and params:
             if set(params) != {'job_id','run_uid'} or not re.fullmatch(r'l20-[0-9a-f]{24}',params.get('job_id','')) or not re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',params.get('run_uid','')):
                 raise ValueError('Fixed Tekton job/run identity required')
