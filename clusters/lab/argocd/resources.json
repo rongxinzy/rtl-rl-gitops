@@ -47208,6 +47208,14 @@
                   "defaultMode": 365
                 }
               }
+            ],
+            "hostAliases": [
+              {
+                "ip": "20.201.28.151",
+                "hostnames": [
+                  "github.com"
+                ]
+              }
             ]
           }
         }
