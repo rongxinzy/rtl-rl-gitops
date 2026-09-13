@@ -1189,6 +1189,88 @@
         "kind": "Role",
         "name": "rtl-ops-agent-recovery"
       }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "rtl-ops-status",
+        "namespace": "rtl-brain"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "rtl-ops-status"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "rtl-ops-status"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "nodeSelector": {
+              "kubernetes.io/hostname": "rtl-control"
+            },
+            "securityContext": {
+              "runAsNonRoot": true,
+              "runAsUser": 65532,
+              "runAsGroup": 65532,
+              "fsGroup": 65532
+            },
+            "containers": [
+              {
+                "name": "status",
+                "image": "docker.io/library/rtl-ops-agent@sha256:d23af1f0535de7a4456015c9e131cd7101a9f96f2dc6a864fd74ba73f5785ec7",
+                "imagePullPolicy": "Never",
+                "command": [
+                  "python3",
+                  "-c",
+                  "import time; time.sleep(864000000)"
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "5m",
+                    "memory": "20Mi"
+                  },
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "readOnlyRootFilesystem": true,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "state",
+                    "mountPath": "/state",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "state",
+                "persistentVolumeClaim": {
+                  "claimName": "rtl-ops-agent-state",
+                  "readOnly": true
+                }
+              }
+            ]
+          }
+        }
+      }
     }
   ]
 }
