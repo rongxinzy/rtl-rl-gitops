@@ -1,0 +1,70 @@
+{
+  "scope": "explicit public source allowlist; not live host export",
+  "files": [
+    {
+      "source": "infrastructure/k3s/server.yaml",
+      "file": "sources/infrastructure/k3s/server.yaml",
+      "sha256": "3e47706700ed8833c08cdad731c8393d499125abbec266d6ebedb8c63edcfd7f"
+    },
+    {
+      "source": "infrastructure/k3s/l20.yaml",
+      "file": "sources/infrastructure/k3s/l20.yaml",
+      "sha256": "757dafd06b79e9ce821041d6c98af5964ce95b70568fb332e092741f65049816"
+    },
+    {
+      "source": "infrastructure/k3s/pro6000d.yaml",
+      "file": "sources/infrastructure/k3s/pro6000d.yaml",
+      "sha256": "cbd39d3cac0870c1eadf24fd724f6d2461b8c5f27be618438f5cdfe918f4e93c"
+    },
+    {
+      "source": "infrastructure/k3s/guard-network.sh",
+      "file": "sources/infrastructure/k3s/guard-network.sh",
+      "sha256": "e9cfb88b11927c6fea6460f3e022a8bb63b04b6e167312f7d75fdf9fa1a0bc2a"
+    },
+    {
+      "source": "infrastructure/k3s/rtl-k3s-network.service",
+      "file": "sources/infrastructure/k3s/rtl-k3s-network.service",
+      "sha256": "c591dedd1a66d7b137d0b1ccda81b256ffadbf404c8505f88233fba724584150"
+    },
+    {
+      "source": "infrastructure/new-api/data_bridge.py",
+      "file": "sources/infrastructure/new-api/data_bridge.py",
+      "sha256": "8ef4ffdb510e4488e105b53364b92f2a3597135d88df265ae268a0860d89afb4"
+    },
+    {
+      "source": "infrastructure/new-api/new-api-data-bridge.service",
+      "file": "sources/infrastructure/new-api/new-api-data-bridge.service",
+      "sha256": "01315be38d25df23e5d34e664523706d8fad2c21cce4a1af67c2b7136aa662e6"
+    },
+    {
+      "source": "research/executor/rtl-research-executor.service",
+      "file": "sources/research/executor/rtl-research-executor.service",
+      "sha256": "b00642e4c11f027b3d71533aef2de710b97b6ac47e199d4e683a70932d6ce28c"
+    },
+    {
+      "source": "research/l20_worker/rtl-l20-worker.service",
+      "file": "sources/research/l20_worker/rtl-l20-worker.service",
+      "sha256": "1ec58e7f6759e1c069f4031a9a0f4985b8279892398b6738098b59d0ff4a900f"
+    },
+    {
+      "source": "scheduling/rtl-night-training.service",
+      "file": "sources/scheduling/rtl-night-training.service",
+      "sha256": "478ec0ed3ef82c1dfd567bbaf8b7568d52c3c84e0110d33638440a5b6d569bff"
+    },
+    {
+      "source": "scheduling/rtl-night-reconcile.service",
+      "file": "sources/scheduling/rtl-night-reconcile.service",
+      "sha256": "4a18ce0a2a6f7b192ccfa938e272ad9e756992c5c556fc635daa2270b168ad4c"
+    },
+    {
+      "source": "scheduling/rtl-night-reconcile.timer",
+      "file": "sources/scheduling/rtl-night-reconcile.timer",
+      "sha256": "64db0d899057784a3376e51146192df50f7dcbe4b9a08f1c2b5ba530e22da5e6"
+    },
+    {
+      "source": "services/rtl-judge.service",
+      "file": "sources/services/rtl-judge.service",
+      "sha256": "4d13212a17b7415418eef7ca6da8ecf7d30dea657598ff287ba9c26463c2ec1e"
+    }
+  ]
+}

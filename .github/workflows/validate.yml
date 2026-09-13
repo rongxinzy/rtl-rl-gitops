@@ -1,0 +1,19 @@
+name: Validate GitOps
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate static manifests
+        run: python3 scripts/validate.py
+      - name: Scan explicit public files and all reachable history
+        run: python3 scripts/scan_public.py --root . --allowlist public-files.json --history

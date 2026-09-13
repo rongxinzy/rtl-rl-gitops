@@ -1,0 +1,17 @@
+node-name: rtl-control
+node-ip: 172.18.5.188
+advertise-address: 172.18.5.188
+flannel-iface: ens18
+tls-san:
+  - 172.18.5.188
+write-kubeconfig-mode: "0600"
+secrets-encryption: true
+cluster-cidr: 10.42.0.0/16
+service-cidr: 10.43.0.0/16
+disable:
+  - traefik
+  - servicelb
+kubelet-arg:
+  - fail-swap-on=false
+node-label:
+  - rtl.ai/role=control

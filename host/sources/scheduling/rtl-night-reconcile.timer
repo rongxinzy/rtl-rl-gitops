@@ -1,0 +1,8 @@
+[Unit]
+Description=Local failsafe for RTL night scheduling
+[Timer]
+OnBootSec=90
+OnUnitInactiveSec=60
+AccuracySec=1
+[Install]
+WantedBy=timers.target

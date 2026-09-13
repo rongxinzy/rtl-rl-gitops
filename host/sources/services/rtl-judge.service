@@ -1,0 +1,20 @@
+[Unit]
+Description=RTL training trusted local judge
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/rtl-rl
+ExecStart=/usr/bin/python3 -u /root/rtl-rl/scripts/judge_service.py --registry /root/rtl-rl/processed/bootstrap-v2/registry_train.jsonl --cache /root/rtl-rl/reports/judge-cache
+Restart=on-failure
+RestartSec=5
+MemoryMax=2G
+CPUQuota=200%
+TasksMax=128
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

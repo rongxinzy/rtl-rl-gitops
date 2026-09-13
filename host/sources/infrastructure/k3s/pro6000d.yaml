@@ -1,0 +1,13 @@
+server: https://172.18.5.188:6443
+token-file: /etc/rancher/k3s/join-token
+node-name: rtl-pro6000d
+node-ip: 172.18.4.199
+flannel-iface: eno1
+kubelet-arg:
+  - fail-swap-on=false
+node-taint:
+  - rtl.ai/externally-managed=true:NoSchedule
+node-label:
+  - rtl.ai/role=gpu
+  - rtl.ai/gpu-family=rtx6000d
+  - rtl.ai/gpu-owner=external

@@ -1,0 +1,28 @@
+[Unit]
+Description=Fixed L20 training worker and typed control API
+After=network-online.target docker.service
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/mnt/data/rtl-l20-training/worker/source
+Environment=L20_WORK_ROOT=/mnt/data/rtl-l20-training/worker
+Environment=L20_WORK_BIND=127.0.0.1
+ExecStart=/usr/bin/python3 /mnt/data/rtl-l20-training/worker/source/server.py
+Restart=on-failure
+RestartSec=10
+KillMode=control-group
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/mnt/data/rtl-l20-training/worker
+MemoryMax=2G
+CPUQuota=200%
+TasksMax=128
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

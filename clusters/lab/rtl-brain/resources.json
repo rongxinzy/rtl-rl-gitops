@@ -1,0 +1,620 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "rtl-brain-status",
+        "namespace": "rtl-brain"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "rtl-brain-status"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "rtl-brain-status"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "command": [
+                  "python3",
+                  "-c",
+                  "import time; time.sleep(864000000)"
+                ],
+                "image": "rtl-brain:20260913-v12",
+                "imagePullPolicy": "Never",
+                "name": "status",
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  },
+                  "requests": {
+                    "cpu": "5m",
+                    "memory": "20Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/state",
+                    "name": "state",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "kubernetes.io/hostname": "rtl-control"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "fsGroup": 65532,
+              "runAsGroup": 65532,
+              "runAsNonRoot": true,
+              "runAsUser": 65532
+            },
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "state",
+                "persistentVolumeClaim": {
+                  "claimName": "rtl-brain-state",
+                  "readOnly": true
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "CronJob",
+      "metadata": {
+        "name": "rtl-brain-guardian",
+        "namespace": "rtl-brain"
+      },
+      "spec": {
+        "concurrencyPolicy": "Forbid",
+        "failedJobsHistoryLimit": 3,
+        "jobTemplate": {
+          "metadata": {
+            "labels": {
+              "app": "rtl-brain-guardian"
+            }
+          },
+          "spec": {
+            "activeDeadlineSeconds": 300,
+            "backoffLimit": 0,
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "rtl-brain-guardian"
+                }
+              },
+              "spec": {
+                "containers": [
+                  {
+                    "command": [
+                      "python3",
+                      "/app/guardian.py"
+                    ],
+                    "env": [
+                      {
+                        "name": "BRAIN_STATE",
+                        "value": "/state"
+                      },
+                      {
+                        "name": "MAX_MODEL_CALLS_DAY",
+                        "value": "60"
+                      },
+                      {
+                        "name": "MODEL_INTERVAL_SECONDS",
+                        "value": "900"
+                      }
+                    ],
+                    "image": "rtl-brain:20260913-v12",
+                    "imagePullPolicy": "Never",
+                    "name": "brain",
+                    "resources": {
+                      "limits": {
+                        "cpu": "1",
+                        "memory": "512Mi"
+                      },
+                      "requests": {
+                        "cpu": "50m",
+                        "memory": "96Mi"
+                      }
+                    },
+                    "securityContext": {
+                      "allowPrivilegeEscalation": false,
+                      "capabilities": {
+                        "drop": [
+                          "ALL"
+                        ]
+                      },
+                      "readOnlyRootFilesystem": true
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "terminationMessagePolicy": "File"
+                  }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "nodeSelector": {
+                  "kubernetes.io/hostname": "rtl-control"
+                },
+                "restartPolicy": "Never",
+                "schedulerName": "default-scheduler",
+                "securityContext": {
+                  "fsGroup": 65532,
+                  "runAsGroup": 65532,
+                  "runAsNonRoot": true,
+                  "runAsUser": 65532
+                },
+                "serviceAccount": "rtl-brain-guardian",
+                "serviceAccountName": "rtl-brain-guardian",
+                "terminationGracePeriodSeconds": 30
+              }
+            },
+            "ttlSecondsAfterFinished": 86400
+          }
+        },
+        "schedule": "*/10 * * * *",
+        "startingDeadlineSeconds": 180,
+        "successfulJobsHistoryLimit": 2,
+        "suspend": false
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "CronJob",
+      "metadata": {
+        "name": "rtl-brain-loop",
+        "namespace": "rtl-brain"
+      },
+      "spec": {
+        "concurrencyPolicy": "Forbid",
+        "failedJobsHistoryLimit": 3,
+        "jobTemplate": {
+          "metadata": {
+            "labels": {
+              "app": "rtl-brain-loop"
+            }
+          },
+          "spec": {
+            "activeDeadlineSeconds": 300,
+            "backoffLimit": 0,
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "rtl-brain-loop"
+                }
+              },
+              "spec": {
+                "containers": [
+                  {
+                    "command": [
+                      "python3",
+                      "/app/loop.py"
+                    ],
+                    "env": [
+                      {
+                        "name": "BRAIN_STATE",
+                        "value": "/state"
+                      },
+                      {
+                        "name": "MAX_MODEL_CALLS_DAY",
+                        "value": "60"
+                      },
+                      {
+                        "name": "MODEL_INTERVAL_SECONDS",
+                        "value": "900"
+                      }
+                    ],
+                    "image": "rtl-brain:20260913-v12",
+                    "imagePullPolicy": "Never",
+                    "name": "brain",
+                    "resources": {
+                      "limits": {
+                        "cpu": "1",
+                        "memory": "512Mi"
+                      },
+                      "requests": {
+                        "cpu": "50m",
+                        "memory": "96Mi"
+                      }
+                    },
+                    "securityContext": {
+                      "allowPrivilegeEscalation": false,
+                      "capabilities": {
+                        "drop": [
+                          "ALL"
+                        ]
+                      },
+                      "readOnlyRootFilesystem": true
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "terminationMessagePolicy": "File",
+                    "volumeMounts": [
+                      {
+                        "mountPath": "/state",
+                        "name": "state"
+                      },
+                      {
+                        "mountPath": "/secrets",
+                        "name": "secrets",
+                        "readOnly": true
+                      }
+                    ]
+                  }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "nodeSelector": {
+                  "kubernetes.io/hostname": "rtl-control"
+                },
+                "restartPolicy": "Never",
+                "schedulerName": "default-scheduler",
+                "securityContext": {
+                  "fsGroup": 65532,
+                  "runAsGroup": 65532,
+                  "runAsNonRoot": true,
+                  "runAsUser": 65532
+                },
+                "serviceAccount": "rtl-brain",
+                "serviceAccountName": "rtl-brain",
+                "terminationGracePeriodSeconds": 30,
+                "volumes": [
+                  {
+                    "name": "state",
+                    "persistentVolumeClaim": {
+                      "claimName": "rtl-brain-state"
+                    }
+                  },
+                  {
+                    "name": "secrets",
+                    "secret": {
+                      "defaultMode": 288,
+                      "secretName": "rtl-brain-secrets"
+                    }
+                  }
+                ]
+              }
+            },
+            "ttlSecondsAfterFinished": 86400
+          }
+        },
+        "schedule": "* * * * *",
+        "startingDeadlineSeconds": 180,
+        "successfulJobsHistoryLimit": 2,
+        "suspend": false
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "rtl-executor",
+        "namespace": "rtl-brain"
+      },
+      "spec": {
+        "internalTrafficPolicy": "Cluster",
+        "ports": [
+          {
+            "name": "http",
+            "port": 18765,
+            "protocol": "TCP",
+            "targetPort": 18765
+          }
+        ],
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "rtl-brain",
+        "namespace": "rtl-brain"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "rtl-brain-guardian",
+        "namespace": "rtl-brain"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "guardian",
+        "namespace": "rtl-brain"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "batch"
+          ],
+          "resources": [
+            "jobs"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "batch"
+          ],
+          "resourceNames": [
+            "rtl-brain-loop"
+          ],
+          "resources": [
+            "cronjobs"
+          ],
+          "verbs": [
+            "get"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-brain-observer",
+        "namespace": "rtl-brain"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods",
+            "events"
+          ],
+          "verbs": [
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "guardian",
+        "namespace": "rtl-brain"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "guardian"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-brain-guardian",
+          "namespace": "rtl-brain"
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-brain-observer",
+        "namespace": "rtl-brain"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-brain-observer"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-brain",
+          "namespace": "rtl-brain"
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "annotations": {
+          "volume.beta.kubernetes.io/storage-provisioner": "rancher.io/local-path",
+          "argocd.argoproj.io/sync-options": "Prune=false,Delete=false"
+        },
+        "name": "rtl-brain-state",
+        "namespace": "rtl-brain"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "1Gi"
+          }
+        },
+        "storageClassName": "local-path",
+        "volumeMode": "Filesystem"
+      }
+    },
+    {
+      "addressType": "IPv4",
+      "apiVersion": "discovery.k8s.io/v1",
+      "endpoints": [
+        {
+          "addresses": [
+            "172.18.4.199"
+          ],
+          "conditions": {}
+        }
+      ],
+      "kind": "EndpointSlice",
+      "metadata": {
+        "labels": {
+          "kubernetes.io/service-name": "rtl-executor"
+        },
+        "name": "rtl-executor",
+        "namespace": "rtl-brain"
+      },
+      "ports": [
+        {
+          "name": "http",
+          "port": 18765,
+          "protocol": "TCP"
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "labels": {
+          "kubernetes.io/metadata.name": "rtl-brain"
+        },
+        "name": "rtl-brain",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=false,Delete=false"
+        }
+      },
+      "spec": {
+        "finalizers": [
+          "kubernetes"
+        ]
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "rtl-brain-node-observer"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "nodes"
+          ],
+          "verbs": [
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "ClusterRoleBinding",
+      "metadata": {
+        "name": "rtl-brain-node-observer"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "rtl-brain-node-observer"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-brain",
+          "namespace": "rtl-brain"
+        }
+      ]
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "kind": "ValidatingAdmissionPolicy",
+      "metadata": {
+        "name": "rtl-brain-job-only"
+      },
+      "spec": {
+        "failurePolicy": "Fail",
+        "matchConstraints": {
+          "matchPolicy": "Equivalent",
+          "namespaceSelector": {},
+          "objectSelector": {},
+          "resourceRules": [
+            {
+              "apiGroups": [
+                "rtl.rongxin.ai"
+              ],
+              "apiVersions": [
+                "v1alpha1"
+              ],
+              "operations": [
+                "UPDATE"
+              ],
+              "resources": [
+                "inferenceschedules"
+              ],
+              "scope": "*"
+            }
+          ]
+        },
+        "validations": [
+          {
+            "expression": "request.userInfo.username != 'system:serviceaccount:rtl-brain:rtl-brain' || (((has(object.spec.controlMode) == has(oldObject.spec.controlMode)) && (!has(object.spec.controlMode) || object.spec.controlMode == oldObject.spec.controlMode)) && ((has(object.spec.suspend) == has(oldObject.spec.suspend)) && (!has(object.spec.suspend) || object.spec.suspend == oldObject.spec.suspend)) && ((has(object.spec.mode) == has(oldObject.spec.mode)) && (!has(object.spec.mode) || object.spec.mode == oldObject.spec.mode)) && ((has(object.spec.trainingUntil) == has(oldObject.spec.trainingUntil)) && (!has(object.spec.trainingUntil) || object.spec.trainingUntil == oldObject.spec.trainingUntil)) && ((has(object.spec.allowNightWithoutBackup) == has(oldObject.spec.allowNightWithoutBackup)) && (!has(object.spec.allowNightWithoutBackup) || object.spec.allowNightWithoutBackup == oldObject.spec.allowNightWithoutBackup)) && ((has(object.spec.businessIdleSeconds) == has(oldObject.spec.businessIdleSeconds)) && (!has(object.spec.businessIdleSeconds) || object.spec.businessIdleSeconds == oldObject.spec.businessIdleSeconds)) && ((has(object.spec.minStartRemainingSeconds) == has(oldObject.spec.minStartRemainingSeconds)) && (!has(object.spec.minStartRemainingSeconds) || object.spec.minStartRemainingSeconds == oldObject.spec.minStartRemainingSeconds)) && ((has(object.spec.timezone) == has(oldObject.spec.timezone)) && (!has(object.spec.timezone) || object.spec.timezone == oldObject.spec.timezone)) && ((has(object.spec.trainingStart) == has(oldObject.spec.trainingStart)) && (!has(object.spec.trainingStart) || object.spec.trainingStart == oldObject.spec.trainingStart)) && ((has(object.spec.trainingStop) == has(oldObject.spec.trainingStop)) && (!has(object.spec.trainingStop) || object.spec.trainingStop == oldObject.spec.trainingStop)) && ((has(object.spec.readyBy) == has(oldObject.spec.readyBy)) && (!has(object.spec.readyBy) || object.spec.readyBy == oldObject.spec.readyBy)) && ((has(object.spec.model) == has(oldObject.spec.model)) && (!has(object.spec.model) || object.spec.model == oldObject.spec.model)) && ((has(object.spec.primaryURL) == has(oldObject.spec.primaryURL)) && (!has(object.spec.primaryURL) || object.spec.primaryURL == oldObject.spec.primaryURL)) && ((has(object.spec.backupURL) == has(oldObject.spec.backupURL)) && (!has(object.spec.backupURL) || object.spec.backupURL == oldObject.spec.backupURL)) && ((has(object.spec.routerURL) == has(oldObject.spec.routerURL)) && (!has(object.spec.routerURL) || object.spec.routerURL == oldObject.spec.routerURL)) && ((has(object.metadata.labels) == has(oldObject.metadata.labels)) && (!has(object.metadata.labels) || object.metadata.labels == oldObject.metadata.labels)) && ((has(object.metadata.annotations) == has(oldObject.metadata.annotations)) && (!has(object.metadata.annotations) || object.metadata.annotations == oldObject.metadata.annotations)) && ((has(object.metadata.finalizers) == has(oldObject.metadata.finalizers)) && (!has(object.metadata.finalizers) || object.metadata.finalizers == oldObject.metadata.finalizers)) && ((has(object.metadata.ownerReferences) == has(oldObject.metadata.ownerReferences)) && (!has(object.metadata.ownerReferences) || object.metadata.ownerReferences == oldObject.metadata.ownerReferences)))",
+            "message": "Brain may change jobId only; inference policy and metadata are protected"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "kind": "ValidatingAdmissionPolicyBinding",
+      "metadata": {
+        "name": "rtl-brain-job-only"
+      },
+      "spec": {
+        "policyName": "rtl-brain-job-only",
+        "validationActions": [
+          "Deny"
+        ]
+      }
+    }
+  ]
+}

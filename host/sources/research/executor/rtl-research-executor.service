@@ -1,0 +1,26 @@
+[Unit]
+Description=Restricted RTL research capability executor
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/rtl-rl
+ExecStart=/usr/bin/python3 -m research.executor.server
+Environment=RTL_EXECUTOR_BIND=127.0.0.1
+Restart=on-failure
+RestartSec=10
+KillMode=control-group
+TimeoutStopSec=45
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/root/rtl-rl/runs /root/rtl-rl/research /root/rtl-rl/state /root/rtl-rl/scheduling /etc/systemd/system/rtl-judge.service.d /tmp /var/tmp
+ProtectHome=read-only
+MemoryMax=2G
+CPUQuota=200%
+TasksMax=128
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

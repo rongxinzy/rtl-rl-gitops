@@ -1,0 +1,682 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "created-at-shim",
+        "namespace": "new-api"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "created-at-shim"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "created-at-shim"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "image": "docker.io/library/created-at-shim:latest",
+                "imagePullPolicy": "Never",
+                "name": "shim",
+                "ports": [
+                  {
+                    "containerPort": 30001,
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "periodSeconds": 5,
+                  "successThreshold": 1,
+                  "tcpSocket": {
+                    "port": 30001
+                  },
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "256Mi"
+                  },
+                  "requests": {
+                    "cpu": "25m",
+                    "memory": "64Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "kubernetes.io/hostname": "rtl-control"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {},
+            "terminationGracePeriodSeconds": 30
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "new-api-ingress",
+        "namespace": "new-api"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "new-api-ingress"
+          }
+        },
+        "strategy": {
+          "type": "Recreate"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "new-api-ingress"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "nginx",
+                  "-c",
+                  "/config/nginx.conf",
+                  "-g",
+                  "daemon off;"
+                ],
+                "image": "docker.io/library/rtl-new-api-ingress:20260913",
+                "imagePullPolicy": "Never",
+                "lifecycle": {
+                  "preStop": {
+                    "exec": {
+                      "command": [
+                        "/bin/sh",
+                        "-c",
+                        "p=$(cat /tmp/nginx.pid); nginx -c /config/nginx.conf -s quit; while kill -0 \"$p\" 2>/dev/null; do sleep 1; done"
+                      ]
+                    }
+                  }
+                },
+                "name": "proxy",
+                "ports": [
+                  {
+                    "containerPort": 3000,
+                    "hostPort": 3000,
+                    "name": "http",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 2,
+                  "httpGet": {
+                    "path": "/api/status",
+                    "port": 3000,
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 2,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "256Mi"
+                  },
+                  "requests": {
+                    "cpu": "25m",
+                    "memory": "32Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/config",
+                    "name": "config",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "kubernetes.io/hostname": "rtl-control"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {},
+            "terminationGracePeriodSeconds": 120,
+            "volumes": [
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "new-api-ingress"
+                },
+                "name": "config"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "new-api-primary",
+        "namespace": "new-api"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "new-api",
+            "instance": "primary"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "new-api",
+              "instance": "primary"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "NODE_TYPE",
+                    "value": "master"
+                  },
+                  {
+                    "name": "NODE_NAME",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.name"
+                      }
+                    }
+                  },
+                  {
+                    "name": "SYNC_FREQUENCY",
+                    "value": "10"
+                  }
+                ],
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "new-api-runtime"
+                    }
+                  }
+                ],
+                "image": "docker.io/calciumion/new-api:rtl-pinned-rc36",
+                "imagePullPolicy": "Never",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/api/status",
+                    "port": 3000,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 30,
+                  "periodSeconds": 15,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "name": "new-api",
+                "ports": [
+                  {
+                    "containerPort": 3000,
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/api/status",
+                    "port": 3000,
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 5,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/data",
+                    "name": "data"
+                  },
+                  {
+                    "mountPath": "/app/logs",
+                    "name": "logs"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "kubernetes.io/hostname": "rtl-control"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {},
+            "terminationGracePeriodSeconds": 120,
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "rtl.ai/externally-managed",
+                "operator": "Equal",
+                "value": "true"
+              }
+            ],
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "data"
+              },
+              {
+                "emptyDir": {},
+                "name": "logs"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "new-api-secondary",
+        "namespace": "new-api"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "new-api",
+            "instance": "secondary"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-09-12T16:19:42Z"
+            },
+            "labels": {
+              "app": "new-api",
+              "instance": "secondary"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "NODE_TYPE",
+                    "value": "slave"
+                  },
+                  {
+                    "name": "NODE_NAME",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.name"
+                      }
+                    }
+                  },
+                  {
+                    "name": "SYNC_FREQUENCY",
+                    "value": "10"
+                  }
+                ],
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "new-api-runtime"
+                    }
+                  }
+                ],
+                "image": "docker.io/calciumion/new-api:rtl-pinned-rc36",
+                "imagePullPolicy": "Never",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/api/status",
+                    "port": 3000,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 30,
+                  "periodSeconds": 15,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "name": "new-api",
+                "ports": [
+                  {
+                    "containerPort": 3000,
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/api/status",
+                    "port": 3000,
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 5,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/data",
+                    "name": "data"
+                  },
+                  {
+                    "mountPath": "/app/logs",
+                    "name": "logs"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "kubernetes.io/hostname": "rtl-l20"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {},
+            "terminationGracePeriodSeconds": 120,
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "rtl.ai/externally-managed",
+                "operator": "Equal",
+                "value": "true"
+              }
+            ],
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "data"
+              },
+              {
+                "emptyDir": {},
+                "name": "logs"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "created-at-shim",
+        "namespace": "new-api"
+      },
+      "spec": {
+        "internalTrafficPolicy": "Cluster",
+        "ports": [
+          {
+            "name": "tcp",
+            "port": 30001,
+            "protocol": "TCP",
+            "targetPort": 30001
+          }
+        ],
+        "selector": {
+          "app": "created-at-shim"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "new-api",
+        "namespace": "new-api"
+      },
+      "spec": {
+        "externalTrafficPolicy": "Cluster",
+        "internalTrafficPolicy": "Cluster",
+        "ports": [
+          {
+            "name": "http",
+            "nodePort": 31000,
+            "port": 3000,
+            "protocol": "TCP",
+            "targetPort": 3000
+          }
+        ],
+        "selector": {
+          "app": "new-api"
+        },
+        "sessionAffinity": "None",
+        "type": "NodePort"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "postgres",
+        "namespace": "new-api"
+      },
+      "spec": {
+        "internalTrafficPolicy": "Cluster",
+        "ports": [
+          {
+            "name": "tcp",
+            "port": 5432,
+            "protocol": "TCP",
+            "targetPort": 15432
+          }
+        ],
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "redis",
+        "namespace": "new-api"
+      },
+      "spec": {
+        "internalTrafficPolicy": "Cluster",
+        "ports": [
+          {
+            "name": "tcp",
+            "port": 6379,
+            "protocol": "TCP",
+            "targetPort": 16379
+          }
+        ],
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "nginx.conf": "worker_processes auto;\nerror_log /dev/stderr warn;\npid /tmp/nginx.pid;\nworker_shutdown_timeout 110s;\nevents { worker_connections 4096; }\nhttp {\n    access_log off;\n    client_max_body_size 64m;\n    client_body_timeout 300s;\n    map $http_upgrade $connection_upgrade { default upgrade; '' ''; }\n    upstream new_api { server new-api.new-api.svc:3000; keepalive 64; }\n    server {\n        listen 3000;\n        location / {\n            proxy_pass http://new_api;\n            proxy_http_version 1.1;\n            proxy_set_header Host $http_host;\n            proxy_set_header X-Real-IP $remote_addr;\n            proxy_set_header X-Forwarded-For $remote_addr;\n            proxy_set_header X-Forwarded-Proto $scheme;\n            proxy_set_header Upgrade $http_upgrade;\n            proxy_set_header Connection $connection_upgrade;\n            proxy_buffering off;\n            proxy_request_buffering off;\n            proxy_cache off;\n            proxy_read_timeout 3600s;\n            proxy_send_timeout 3600s;\n            proxy_connect_timeout 5s;\n        }\n    }\n}\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "new-api-ingress",
+        "namespace": "new-api"
+      }
+    },
+    {
+      "addressType": "IPv4",
+      "apiVersion": "discovery.k8s.io/v1",
+      "endpoints": [
+        {
+          "addresses": [
+            "172.18.5.188"
+          ],
+          "conditions": {
+            "ready": true
+          }
+        }
+      ],
+      "kind": "EndpointSlice",
+      "metadata": {
+        "labels": {
+          "kubernetes.io/service-name": "postgres"
+        },
+        "name": "postgres-docker",
+        "namespace": "new-api"
+      },
+      "ports": [
+        {
+          "name": "tcp",
+          "port": 15432,
+          "protocol": "TCP"
+        }
+      ]
+    },
+    {
+      "addressType": "IPv4",
+      "apiVersion": "discovery.k8s.io/v1",
+      "endpoints": [
+        {
+          "addresses": [
+            "172.18.5.188"
+          ],
+          "conditions": {
+            "ready": true
+          }
+        }
+      ],
+      "kind": "EndpointSlice",
+      "metadata": {
+        "labels": {
+          "kubernetes.io/service-name": "redis"
+        },
+        "name": "redis-docker",
+        "namespace": "new-api"
+      },
+      "ports": [
+        {
+          "name": "tcp",
+          "port": 16379,
+          "protocol": "TCP"
+        }
+      ]
+    },
+    {
+      "apiVersion": "policy/v1",
+      "kind": "PodDisruptionBudget",
+      "metadata": {
+        "name": "new-api",
+        "namespace": "new-api"
+      },
+      "spec": {
+        "minAvailable": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "new-api"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "labels": {
+          "kubernetes.io/metadata.name": "new-api"
+        },
+        "name": "new-api",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=false,Delete=false"
+        }
+      },
+      "spec": {
+        "finalizers": [
+          "kubernetes"
+        ]
+      }
+    }
+  ]
+}

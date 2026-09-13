@@ -1,0 +1,853 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "AppProject",
+      "metadata": {
+        "name": "rtl-lab",
+        "namespace": "argocd"
+      },
+      "spec": {
+        "description": "Trusted main branch for fixed RTL lab static infrastructure; runtime resources and Secrets excluded",
+        "sourceRepos": [
+          "https://github.com/rongxinzy/rtl-rl-gitops.git"
+        ],
+        "destinations": [
+          {
+            "server": "https://kubernetes.default.svc",
+            "namespace": "argocd"
+          },
+          {
+            "server": "https://kubernetes.default.svc",
+            "namespace": "new-api"
+          },
+          {
+            "server": "https://kubernetes.default.svc",
+            "namespace": "rtl-brain"
+          },
+          {
+            "server": "https://kubernetes.default.svc",
+            "namespace": "rtl-egress"
+          },
+          {
+            "server": "https://kubernetes.default.svc",
+            "namespace": "rtl-pipelines"
+          },
+          {
+            "server": "https://kubernetes.default.svc",
+            "namespace": "rtl-system"
+          },
+          {
+            "server": "https://kubernetes.default.svc",
+            "namespace": "tekton-pipelines"
+          },
+          {
+            "server": "https://kubernetes.default.svc",
+            "namespace": "tekton-pipelines-resolvers"
+          }
+        ],
+        "clusterResourceWhitelist": [
+          {
+            "group": "",
+            "kind": "Namespace"
+          },
+          {
+            "group": "apiextensions.k8s.io",
+            "kind": "CustomResourceDefinition"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "kind": "ClusterRoleBinding"
+          },
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "ValidatingWebhookConfiguration"
+          },
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "MutatingWebhookConfiguration"
+          },
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "ValidatingAdmissionPolicy"
+          },
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "ValidatingAdmissionPolicyBinding"
+          }
+        ],
+        "namespaceResourceWhitelist": [
+          {
+            "group": "",
+            "kind": "Service"
+          },
+          {
+            "group": "",
+            "kind": "ServiceAccount"
+          },
+          {
+            "group": "",
+            "kind": "ConfigMap"
+          },
+          {
+            "group": "",
+            "kind": "PersistentVolumeClaim"
+          },
+          {
+            "group": "apps",
+            "kind": "Deployment"
+          },
+          {
+            "group": "apps",
+            "kind": "DaemonSet"
+          },
+          {
+            "group": "apps",
+            "kind": "StatefulSet"
+          },
+          {
+            "group": "batch",
+            "kind": "CronJob"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "kind": "Role"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "kind": "RoleBinding"
+          },
+          {
+            "group": "discovery.k8s.io",
+            "kind": "EndpointSlice"
+          },
+          {
+            "group": "networking.k8s.io",
+            "kind": "NetworkPolicy"
+          },
+          {
+            "group": "policy",
+            "kind": "PodDisruptionBudget"
+          },
+          {
+            "group": "tekton.dev",
+            "kind": "Task"
+          },
+          {
+            "group": "tekton.dev",
+            "kind": "Pipeline"
+          },
+          {
+            "group": "rtl.rongxin.ai",
+            "kind": "InferenceSchedule"
+          },
+          {
+            "group": "argoproj.io",
+            "kind": "Application"
+          },
+          {
+            "group": "argoproj.io",
+            "kind": "AppProject"
+          }
+        ],
+        "orphanedResources": {
+          "warn": false
+        }
+      }
+    },
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "name": "rtl-lab",
+        "namespace": "argocd"
+      },
+      "spec": {
+        "project": "rtl-lab",
+        "source": {
+          "repoURL": "https://github.com/rongxinzy/rtl-rl-gitops.git",
+          "targetRevision": "main",
+          "path": "bootstrap",
+          "directory": {
+            "recurse": false,
+            "include": "*.json"
+          }
+        },
+        "destination": {
+          "server": "https://kubernetes.default.svc",
+          "namespace": "argocd"
+        },
+        "syncPolicy": {
+          "automated": {
+            "enabled": true,
+            "selfHeal": true,
+            "prune": false,
+            "allowEmpty": false
+          },
+          "syncOptions": [
+            "ServerSideApply=true",
+            "DisableClientSideApplyMigration=true",
+            "RespectIgnoreDifferences=true",
+            "FailOnSharedResource=true"
+          ],
+          "retry": {
+            "limit": 5,
+            "backoff": {
+              "duration": "5s",
+              "factor": 2,
+              "maxDuration": "1m"
+            }
+          }
+        },
+        "ignoreDifferences": [
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "MutatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "ValidatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "jqPathExpressions": [
+              "select(.aggregationRule != null) | .rules"
+            ]
+          },
+          {
+            "group": "",
+            "kind": "PersistentVolumeClaim",
+            "jsonPointers": [
+              "/spec/volumeName"
+            ]
+          },
+          {
+            "group": "rtl.rongxin.ai",
+            "kind": "InferenceSchedule",
+            "name": "glm-nightly",
+            "namespace": "rtl-system",
+            "jsonPointers": [
+              "/spec/jobId",
+              "/status"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "name": "rtl-tekton-platform",
+        "namespace": "argocd"
+      },
+      "spec": {
+        "project": "rtl-lab",
+        "source": {
+          "repoURL": "https://github.com/rongxinzy/rtl-rl-gitops.git",
+          "targetRevision": "main",
+          "path": "clusters/lab/tekton-platform",
+          "directory": {
+            "recurse": false,
+            "include": "*.json"
+          }
+        },
+        "destination": {
+          "server": "https://kubernetes.default.svc",
+          "namespace": "argocd"
+        },
+        "syncPolicy": {
+          "automated": {
+            "enabled": false,
+            "selfHeal": true,
+            "prune": false,
+            "allowEmpty": false
+          },
+          "syncOptions": [
+            "ServerSideApply=true",
+            "DisableClientSideApplyMigration=true",
+            "RespectIgnoreDifferences=true",
+            "FailOnSharedResource=true"
+          ],
+          "retry": {
+            "limit": 5,
+            "backoff": {
+              "duration": "5s",
+              "factor": 2,
+              "maxDuration": "1m"
+            }
+          }
+        },
+        "ignoreDifferences": [
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "MutatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "ValidatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "jqPathExpressions": [
+              "select(.aggregationRule != null) | .rules"
+            ]
+          },
+          {
+            "group": "",
+            "kind": "PersistentVolumeClaim",
+            "jsonPointers": [
+              "/spec/volumeName"
+            ]
+          },
+          {
+            "group": "rtl.rongxin.ai",
+            "kind": "InferenceSchedule",
+            "name": "glm-nightly",
+            "namespace": "rtl-system",
+            "jsonPointers": [
+              "/spec/jobId",
+              "/status"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "name": "rtl-egress",
+        "namespace": "argocd"
+      },
+      "spec": {
+        "project": "rtl-lab",
+        "source": {
+          "repoURL": "https://github.com/rongxinzy/rtl-rl-gitops.git",
+          "targetRevision": "main",
+          "path": "clusters/lab/rtl-egress",
+          "directory": {
+            "recurse": false,
+            "include": "*.json"
+          }
+        },
+        "destination": {
+          "server": "https://kubernetes.default.svc",
+          "namespace": "argocd"
+        },
+        "syncPolicy": {
+          "automated": {
+            "enabled": false,
+            "selfHeal": true,
+            "prune": false,
+            "allowEmpty": false
+          },
+          "syncOptions": [
+            "ServerSideApply=true",
+            "DisableClientSideApplyMigration=true",
+            "RespectIgnoreDifferences=true",
+            "FailOnSharedResource=true"
+          ],
+          "retry": {
+            "limit": 5,
+            "backoff": {
+              "duration": "5s",
+              "factor": 2,
+              "maxDuration": "1m"
+            }
+          }
+        },
+        "ignoreDifferences": [
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "MutatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "ValidatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "jqPathExpressions": [
+              "select(.aggregationRule != null) | .rules"
+            ]
+          },
+          {
+            "group": "",
+            "kind": "PersistentVolumeClaim",
+            "jsonPointers": [
+              "/spec/volumeName"
+            ]
+          },
+          {
+            "group": "rtl.rongxin.ai",
+            "kind": "InferenceSchedule",
+            "name": "glm-nightly",
+            "namespace": "rtl-system",
+            "jsonPointers": [
+              "/spec/jobId",
+              "/status"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "name": "rtl-argocd",
+        "namespace": "argocd"
+      },
+      "spec": {
+        "project": "rtl-lab",
+        "source": {
+          "repoURL": "https://github.com/rongxinzy/rtl-rl-gitops.git",
+          "targetRevision": "main",
+          "path": "clusters/lab/argocd",
+          "directory": {
+            "recurse": false,
+            "include": "*.json"
+          }
+        },
+        "destination": {
+          "server": "https://kubernetes.default.svc",
+          "namespace": "argocd"
+        },
+        "syncPolicy": {
+          "automated": {
+            "enabled": false,
+            "selfHeal": true,
+            "prune": false,
+            "allowEmpty": false
+          },
+          "syncOptions": [
+            "ServerSideApply=true",
+            "DisableClientSideApplyMigration=true",
+            "RespectIgnoreDifferences=true",
+            "FailOnSharedResource=true"
+          ],
+          "retry": {
+            "limit": 5,
+            "backoff": {
+              "duration": "5s",
+              "factor": 2,
+              "maxDuration": "1m"
+            }
+          }
+        },
+        "ignoreDifferences": [
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "MutatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "ValidatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "jqPathExpressions": [
+              "select(.aggregationRule != null) | .rules"
+            ]
+          },
+          {
+            "group": "",
+            "kind": "PersistentVolumeClaim",
+            "jsonPointers": [
+              "/spec/volumeName"
+            ]
+          },
+          {
+            "group": "rtl.rongxin.ai",
+            "kind": "InferenceSchedule",
+            "name": "glm-nightly",
+            "namespace": "rtl-system",
+            "jsonPointers": [
+              "/spec/jobId",
+              "/status"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "name": "rtl-system",
+        "namespace": "argocd"
+      },
+      "spec": {
+        "project": "rtl-lab",
+        "source": {
+          "repoURL": "https://github.com/rongxinzy/rtl-rl-gitops.git",
+          "targetRevision": "main",
+          "path": "clusters/lab/rtl-system",
+          "directory": {
+            "recurse": false,
+            "include": "*.json"
+          }
+        },
+        "destination": {
+          "server": "https://kubernetes.default.svc",
+          "namespace": "argocd"
+        },
+        "syncPolicy": {
+          "automated": {
+            "enabled": false,
+            "selfHeal": true,
+            "prune": false,
+            "allowEmpty": false
+          },
+          "syncOptions": [
+            "ServerSideApply=true",
+            "DisableClientSideApplyMigration=true",
+            "RespectIgnoreDifferences=true",
+            "FailOnSharedResource=true"
+          ],
+          "retry": {
+            "limit": 5,
+            "backoff": {
+              "duration": "5s",
+              "factor": 2,
+              "maxDuration": "1m"
+            }
+          }
+        },
+        "ignoreDifferences": [
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "MutatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "ValidatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "jqPathExpressions": [
+              "select(.aggregationRule != null) | .rules"
+            ]
+          },
+          {
+            "group": "",
+            "kind": "PersistentVolumeClaim",
+            "jsonPointers": [
+              "/spec/volumeName"
+            ]
+          },
+          {
+            "group": "rtl.rongxin.ai",
+            "kind": "InferenceSchedule",
+            "name": "glm-nightly",
+            "namespace": "rtl-system",
+            "jsonPointers": [
+              "/spec/jobId",
+              "/status"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "name": "rtl-brain",
+        "namespace": "argocd"
+      },
+      "spec": {
+        "project": "rtl-lab",
+        "source": {
+          "repoURL": "https://github.com/rongxinzy/rtl-rl-gitops.git",
+          "targetRevision": "main",
+          "path": "clusters/lab/rtl-brain",
+          "directory": {
+            "recurse": false,
+            "include": "*.json"
+          }
+        },
+        "destination": {
+          "server": "https://kubernetes.default.svc",
+          "namespace": "argocd"
+        },
+        "syncPolicy": {
+          "automated": {
+            "enabled": false,
+            "selfHeal": true,
+            "prune": false,
+            "allowEmpty": false
+          },
+          "syncOptions": [
+            "ServerSideApply=true",
+            "DisableClientSideApplyMigration=true",
+            "RespectIgnoreDifferences=true",
+            "FailOnSharedResource=true"
+          ],
+          "retry": {
+            "limit": 5,
+            "backoff": {
+              "duration": "5s",
+              "factor": 2,
+              "maxDuration": "1m"
+            }
+          }
+        },
+        "ignoreDifferences": [
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "MutatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "ValidatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "jqPathExpressions": [
+              "select(.aggregationRule != null) | .rules"
+            ]
+          },
+          {
+            "group": "",
+            "kind": "PersistentVolumeClaim",
+            "jsonPointers": [
+              "/spec/volumeName"
+            ]
+          },
+          {
+            "group": "rtl.rongxin.ai",
+            "kind": "InferenceSchedule",
+            "name": "glm-nightly",
+            "namespace": "rtl-system",
+            "jsonPointers": [
+              "/spec/jobId",
+              "/status"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "name": "rtl-new-api",
+        "namespace": "argocd"
+      },
+      "spec": {
+        "project": "rtl-lab",
+        "source": {
+          "repoURL": "https://github.com/rongxinzy/rtl-rl-gitops.git",
+          "targetRevision": "main",
+          "path": "clusters/lab/new-api",
+          "directory": {
+            "recurse": false,
+            "include": "*.json"
+          }
+        },
+        "destination": {
+          "server": "https://kubernetes.default.svc",
+          "namespace": "argocd"
+        },
+        "syncPolicy": {
+          "automated": {
+            "enabled": false,
+            "selfHeal": true,
+            "prune": false,
+            "allowEmpty": false
+          },
+          "syncOptions": [
+            "ServerSideApply=true",
+            "DisableClientSideApplyMigration=true",
+            "RespectIgnoreDifferences=true",
+            "FailOnSharedResource=true"
+          ],
+          "retry": {
+            "limit": 5,
+            "backoff": {
+              "duration": "5s",
+              "factor": 2,
+              "maxDuration": "1m"
+            }
+          }
+        },
+        "ignoreDifferences": [
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "MutatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "ValidatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "jqPathExpressions": [
+              "select(.aggregationRule != null) | .rules"
+            ]
+          },
+          {
+            "group": "",
+            "kind": "PersistentVolumeClaim",
+            "jsonPointers": [
+              "/spec/volumeName"
+            ]
+          },
+          {
+            "group": "rtl.rongxin.ai",
+            "kind": "InferenceSchedule",
+            "name": "glm-nightly",
+            "namespace": "rtl-system",
+            "jsonPointers": [
+              "/spec/jobId",
+              "/status"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "name": "rtl-pipelines",
+        "namespace": "argocd"
+      },
+      "spec": {
+        "project": "rtl-lab",
+        "source": {
+          "repoURL": "https://github.com/rongxinzy/rtl-rl-gitops.git",
+          "targetRevision": "main",
+          "path": "clusters/lab/rtl-pipelines",
+          "directory": {
+            "recurse": false,
+            "include": "*.json"
+          }
+        },
+        "destination": {
+          "server": "https://kubernetes.default.svc",
+          "namespace": "argocd"
+        },
+        "syncPolicy": {
+          "automated": {
+            "enabled": false,
+            "selfHeal": true,
+            "prune": false,
+            "allowEmpty": false
+          },
+          "syncOptions": [
+            "ServerSideApply=true",
+            "DisableClientSideApplyMigration=true",
+            "RespectIgnoreDifferences=true",
+            "FailOnSharedResource=true"
+          ],
+          "retry": {
+            "limit": 5,
+            "backoff": {
+              "duration": "5s",
+              "factor": 2,
+              "maxDuration": "1m"
+            }
+          }
+        },
+        "ignoreDifferences": [
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "MutatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "admissionregistration.k8s.io",
+            "kind": "ValidatingWebhookConfiguration",
+            "jqPathExpressions": [
+              ".webhooks[]?.clientConfig.caBundle"
+            ]
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "jqPathExpressions": [
+              "select(.aggregationRule != null) | .rules"
+            ]
+          },
+          {
+            "group": "",
+            "kind": "PersistentVolumeClaim",
+            "jsonPointers": [
+              "/spec/volumeName"
+            ]
+          },
+          {
+            "group": "rtl.rongxin.ai",
+            "kind": "InferenceSchedule",
+            "name": "glm-nightly",
+            "namespace": "rtl-system",
+            "jsonPointers": [
+              "/spec/jobId",
+              "/status"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

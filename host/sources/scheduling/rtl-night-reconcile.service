@@ -1,0 +1,7 @@
+[Unit]
+Description=Reconcile RTL night training and daytime GLM
+After=docker.service network-online.target
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /root/rtl-rl/scheduling/target.py reconcile
+TimeoutStartSec=90

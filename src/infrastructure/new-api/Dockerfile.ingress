@@ -1,0 +1,4 @@
+FROM created-at-shim:latest
+RUN apk add --no-cache nginx
+ENTRYPOINT ["nginx"]
+CMD ["-g", "daemon off;"]

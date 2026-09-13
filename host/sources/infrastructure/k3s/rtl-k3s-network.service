@@ -1,0 +1,10 @@
+[Unit]
+Description=Restrict K3s VXLAN traffic to cluster nodes
+After=network-pre.target ufw.service
+Before=k3s.service k3s-agent.service
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /opt/rtl-k3s-install/guard-network.sh
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target

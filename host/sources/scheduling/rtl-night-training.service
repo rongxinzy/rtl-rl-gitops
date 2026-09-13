@@ -1,0 +1,11 @@
+[Unit]
+Description=Checkpointed RTL night training
+After=docker.service
+Requires=docker.service
+[Service]
+Type=simple
+WorkingDirectory=/root/rtl-rl
+ExecStart=/usr/bin/python3 /root/rtl-rl/scheduling/run_training.py
+Restart=no
+TimeoutStopSec=660
+KillMode=process

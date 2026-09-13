@@ -1,0 +1,16 @@
+[Unit]
+Description=Restricted Kubernetes bridge to existing New API database/cache
+After=docker.service network-online.target
+Requires=docker.service
+[Service]
+ExecStart=/usr/bin/python3 /opt/rtl-new-api/data_bridge.py
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+MemoryMax=256M
+TasksMax=128
+[Install]
+WantedBy=multi-user.target

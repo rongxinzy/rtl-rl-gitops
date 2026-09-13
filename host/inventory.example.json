@@ -1,0 +1,24 @@
+{
+  "k3s_version": "v1.36.4+k3s1",
+  "nodes": [
+    {
+      "name": "rtl-control",
+      "address": "172.18.5.188",
+      "role": "control",
+      "interface": "ens18"
+    },
+    {
+      "name": "rtl-pro6000d",
+      "address": "172.18.4.199",
+      "role": "pro-gpu",
+      "interface": "eno1"
+    },
+    {
+      "name": "rtl-l20",
+      "address": "172.18.6.123",
+      "role": "l20-gpu",
+      "interface": "enp6s0"
+    }
+  ],
+  "credential_handling": "external root-only files; never inline"
+}

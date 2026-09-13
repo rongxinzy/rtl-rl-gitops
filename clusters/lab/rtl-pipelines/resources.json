@@ -1,0 +1,893 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "rtl-tekton-bridge",
+        "namespace": "rtl-pipelines"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "rtl-tekton-bridge"
+          }
+        },
+        "strategy": {
+          "type": "Recreate"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "rtl-tekton-bridge"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "python3",
+                  "/app/bridge.py"
+                ],
+                "image": "docker.io/library/rtl-tekton-runtime@sha256:ed6625c4230fa46d33b78ac0f55da51f2a21f69dc7a511acd24799fcada682a2",
+                "imagePullPolicy": "Never",
+                "name": "bridge",
+                "resources": {
+                  "limits": {
+                    "cpu": "250m",
+                    "memory": "128Mi"
+                  },
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "32Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "runAsGroup": 65532,
+                  "runAsNonRoot": true,
+                  "runAsUser": 65532,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/secrets/worker",
+                    "name": "worker-token",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "kubernetes.io/hostname": "rtl-control"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "fsGroup": 65532,
+              "runAsNonRoot": true,
+              "runAsUser": 65532,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "rtl-tekton-bridge",
+            "serviceAccountName": "rtl-tekton-bridge",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "worker-token",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "rtl-worker-client"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "automountServiceAccountToken": false,
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "rtl-experiment",
+        "namespace": "rtl-pipelines"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "rtl-tekton-bridge",
+        "namespace": "rtl-pipelines"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-brain-observer",
+        "namespace": "rtl-pipelines"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods",
+            "events"
+          ],
+          "verbs": [
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "tekton.dev"
+          ],
+          "resources": [
+            "pipelineruns"
+          ],
+          "verbs": [
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-tekton-create",
+        "namespace": "rtl-pipelines"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "tekton.dev"
+          ],
+          "resources": [
+            "pipelineruns"
+          ],
+          "verbs": [
+            "get",
+            "create"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-brain-observer",
+        "namespace": "rtl-pipelines"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-brain-observer"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-brain",
+          "namespace": "rtl-brain"
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-tekton-create",
+        "namespace": "rtl-pipelines"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-tekton-create"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-tekton-bridge",
+          "namespace": "rtl-pipelines"
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "labels": {
+          "kubernetes.io/metadata.name": "rtl-pipelines",
+          "pod-security.kubernetes.io/enforce": "restricted",
+          "pod-security.kubernetes.io/enforce-version": "v1.36"
+        },
+        "name": "rtl-pipelines",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=false,Delete=false"
+        }
+      },
+      "spec": {
+        "finalizers": [
+          "kubernetes"
+        ]
+      }
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "kind": "ValidatingAdmissionPolicy",
+      "metadata": {
+        "name": "rtl-tekton-fixed-pipeline"
+      },
+      "spec": {
+        "failurePolicy": "Fail",
+        "matchConstraints": {
+          "matchPolicy": "Equivalent",
+          "namespaceSelector": {},
+          "objectSelector": {},
+          "resourceRules": [
+            {
+              "apiGroups": [
+                "tekton.dev"
+              ],
+              "apiVersions": [
+                "v1"
+              ],
+              "operations": [
+                "CREATE"
+              ],
+              "resources": [
+                "pipelineruns"
+              ],
+              "scope": "*"
+            }
+          ]
+        },
+        "validations": [
+          {
+            "expression": "request.userInfo.username != 'system:serviceaccount:rtl-pipelines:rtl-tekton-bridge' || (has(dyn(object).spec.pipelineRef) && dyn(object).spec.pipelineRef.name == 'rtl-l20-experiment-v1' && !has(dyn(object).spec.pipelineRef.resolver))",
+            "message": "Bridge may create only the fixed RTL experiment graph"
+          },
+          {
+            "expression": "request.userInfo.username != 'system:serviceaccount:rtl-pipelines:rtl-tekton-bridge' || (!has(dyn(object).spec.pipelineSpec) && !has(dyn(object).spec.taskRunSpecs) && !has(dyn(object).spec.workspaces))",
+            "message": "Bridge may create only the fixed RTL experiment graph"
+          },
+          {
+            "expression": "request.userInfo.username != 'system:serviceaccount:rtl-pipelines:rtl-tekton-bridge' || (dyn(object).spec.params.size() == 1 && dyn(object).spec.params[0].name == 'job-id' && dyn(object).spec.params[0].value.matches('^l20-[0-9a-f]{24}$'))",
+            "message": "Bridge may create only the fixed RTL experiment graph"
+          },
+          {
+            "expression": "request.userInfo.username != 'system:serviceaccount:rtl-pipelines:rtl-tekton-bridge' || (dyn(object).metadata.name == 'rtl-' + dyn(object).spec.params[0].value)",
+            "message": "Bridge may create only the fixed RTL experiment graph"
+          },
+          {
+            "expression": "request.userInfo.username != 'system:serviceaccount:rtl-pipelines:rtl-tekton-bridge' || (dyn(object).spec.taskRunTemplate.serviceAccountName == 'rtl-experiment')",
+            "message": "Bridge may create only the fixed RTL experiment graph"
+          },
+          {
+            "expression": "request.userInfo.username != 'system:serviceaccount:rtl-pipelines:rtl-tekton-bridge' || (dyn(object).spec.taskRunTemplate.podTemplate.nodeSelector['kubernetes.io/hostname'] == 'rtl-control')",
+            "message": "Bridge may create only the fixed RTL experiment graph"
+          },
+          {
+            "expression": "request.userInfo.username != 'system:serviceaccount:rtl-pipelines:rtl-tekton-bridge' || (!has(dyn(object).spec.taskRunTemplate.podTemplate.volumes) && !has(dyn(object).spec.taskRunTemplate.podTemplate.imagePullSecrets))",
+            "message": "Bridge may create only the fixed RTL experiment graph"
+          },
+          {
+            "expression": "request.userInfo.username != 'system:serviceaccount:rtl-pipelines:rtl-tekton-bridge' || (dyn(object).spec.taskRunTemplate.podTemplate == {'nodeSelector':dyn({'kubernetes.io/hostname':'rtl-control'}),'securityContext':dyn({'fsGroup':dyn(65532),'runAsUser':dyn(65532),'runAsGroup':dyn(65532),'runAsNonRoot':dyn(true),'seccompProfile':dyn({'type':'RuntimeDefault'})})})",
+            "message": "Bridge may create only the fixed RTL experiment graph"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "kind": "ValidatingAdmissionPolicyBinding",
+      "metadata": {
+        "name": "rtl-tekton-fixed-pipeline"
+      },
+      "spec": {
+        "policyName": "rtl-tekton-fixed-pipeline",
+        "validationActions": [
+          "Deny"
+        ]
+      }
+    },
+    {
+      "apiVersion": "tekton.dev/v1",
+      "kind": "Task",
+      "metadata": {
+        "name": "rtl-l20-baseline-v1",
+        "namespace": "rtl-pipelines"
+      },
+      "spec": {
+        "params": [
+          {
+            "name": "job-id",
+            "type": "string"
+          },
+          {
+            "name": "run-uid",
+            "type": "string"
+          }
+        ],
+        "results": [
+          {
+            "description": "Verified job/run-bound phase or observed final state",
+            "name": "proof",
+            "type": "string"
+          }
+        ],
+        "steps": [
+          {
+            "args": [
+              "baseline",
+              "--job-id",
+              "$(params.job-id)",
+              "--run-uid",
+              "$(params.run-uid)"
+            ],
+            "command": [
+              "python3",
+              "/app/task.py"
+            ],
+            "computeResources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "128Mi"
+              },
+              "requests": {
+                "cpu": "25m",
+                "memory": "48Mi"
+              }
+            },
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:ed6625c4230fa46d33b78ac0f55da51f2a21f69dc7a511acd24799fcada682a2",
+            "imagePullPolicy": "Never",
+            "name": "execute",
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsGroup": 65532,
+              "runAsNonRoot": true,
+              "runAsUser": 65532,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/secrets/worker",
+                "name": "worker-token",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "worker-token",
+            "secret": {
+              "defaultMode": 288,
+              "secretName": "rtl-worker-client"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "tekton.dev/v1",
+      "kind": "Task",
+      "metadata": {
+        "name": "rtl-l20-candidate-v1",
+        "namespace": "rtl-pipelines"
+      },
+      "spec": {
+        "params": [
+          {
+            "name": "job-id",
+            "type": "string"
+          },
+          {
+            "name": "run-uid",
+            "type": "string"
+          }
+        ],
+        "results": [
+          {
+            "description": "Verified job/run-bound phase or observed final state",
+            "name": "proof",
+            "type": "string"
+          }
+        ],
+        "steps": [
+          {
+            "args": [
+              "candidate",
+              "--job-id",
+              "$(params.job-id)",
+              "--run-uid",
+              "$(params.run-uid)"
+            ],
+            "command": [
+              "python3",
+              "/app/task.py"
+            ],
+            "computeResources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "128Mi"
+              },
+              "requests": {
+                "cpu": "25m",
+                "memory": "48Mi"
+              }
+            },
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:ed6625c4230fa46d33b78ac0f55da51f2a21f69dc7a511acd24799fcada682a2",
+            "imagePullPolicy": "Never",
+            "name": "execute",
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsGroup": 65532,
+              "runAsNonRoot": true,
+              "runAsUser": 65532,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/secrets/worker",
+                "name": "worker-token",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "worker-token",
+            "secret": {
+              "defaultMode": 288,
+              "secretName": "rtl-worker-client"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "tekton.dev/v1",
+      "kind": "Task",
+      "metadata": {
+        "name": "rtl-l20-compare-v1",
+        "namespace": "rtl-pipelines"
+      },
+      "spec": {
+        "params": [
+          {
+            "name": "job-id",
+            "type": "string"
+          },
+          {
+            "name": "run-uid",
+            "type": "string"
+          }
+        ],
+        "results": [
+          {
+            "description": "Verified job/run-bound phase or observed final state",
+            "name": "proof",
+            "type": "string"
+          },
+          {
+            "name": "outcome",
+            "type": "string"
+          }
+        ],
+        "steps": [
+          {
+            "args": [
+              "compare",
+              "--job-id",
+              "$(params.job-id)",
+              "--run-uid",
+              "$(params.run-uid)"
+            ],
+            "command": [
+              "python3",
+              "/app/task.py"
+            ],
+            "computeResources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "128Mi"
+              },
+              "requests": {
+                "cpu": "25m",
+                "memory": "48Mi"
+              }
+            },
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:ed6625c4230fa46d33b78ac0f55da51f2a21f69dc7a511acd24799fcada682a2",
+            "imagePullPolicy": "Never",
+            "name": "execute",
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsGroup": 65532,
+              "runAsNonRoot": true,
+              "runAsUser": 65532,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/secrets/worker",
+                "name": "worker-token",
+                "readOnly": true
+              },
+              {
+                "mountPath": "/secrets/executor",
+                "name": "executor-token",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "worker-token",
+            "secret": {
+              "defaultMode": 288,
+              "secretName": "rtl-worker-client"
+            }
+          },
+          {
+            "name": "executor-token",
+            "secret": {
+              "defaultMode": 288,
+              "secretName": "rtl-executor-client"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "tekton.dev/v1",
+      "kind": "Task",
+      "metadata": {
+        "name": "rtl-l20-record-v1",
+        "namespace": "rtl-pipelines"
+      },
+      "spec": {
+        "params": [
+          {
+            "name": "job-id",
+            "type": "string"
+          },
+          {
+            "name": "run-uid",
+            "type": "string"
+          }
+        ],
+        "results": [
+          {
+            "description": "Verified job/run-bound phase or observed final state",
+            "name": "proof",
+            "type": "string"
+          }
+        ],
+        "steps": [
+          {
+            "args": [
+              "record",
+              "--job-id",
+              "$(params.job-id)",
+              "--run-uid",
+              "$(params.run-uid)"
+            ],
+            "command": [
+              "python3",
+              "/app/task.py"
+            ],
+            "computeResources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "128Mi"
+              },
+              "requests": {
+                "cpu": "25m",
+                "memory": "48Mi"
+              }
+            },
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:ed6625c4230fa46d33b78ac0f55da51f2a21f69dc7a511acd24799fcada682a2",
+            "imagePullPolicy": "Never",
+            "name": "execute",
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsGroup": 65532,
+              "runAsNonRoot": true,
+              "runAsUser": 65532,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/secrets/worker",
+                "name": "worker-token",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "worker-token",
+            "secret": {
+              "defaultMode": 288,
+              "secretName": "rtl-worker-client"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "tekton.dev/v1",
+      "kind": "Task",
+      "metadata": {
+        "name": "rtl-l20-training-v1",
+        "namespace": "rtl-pipelines"
+      },
+      "spec": {
+        "params": [
+          {
+            "name": "job-id",
+            "type": "string"
+          },
+          {
+            "name": "run-uid",
+            "type": "string"
+          }
+        ],
+        "results": [
+          {
+            "description": "Verified job/run-bound phase or observed final state",
+            "name": "proof",
+            "type": "string"
+          }
+        ],
+        "steps": [
+          {
+            "args": [
+              "training",
+              "--job-id",
+              "$(params.job-id)",
+              "--run-uid",
+              "$(params.run-uid)"
+            ],
+            "command": [
+              "python3",
+              "/app/task.py"
+            ],
+            "computeResources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "128Mi"
+              },
+              "requests": {
+                "cpu": "25m",
+                "memory": "48Mi"
+              }
+            },
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:ed6625c4230fa46d33b78ac0f55da51f2a21f69dc7a511acd24799fcada682a2",
+            "imagePullPolicy": "Never",
+            "name": "execute",
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsGroup": 65532,
+              "runAsNonRoot": true,
+              "runAsUser": 65532,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/secrets/worker",
+                "name": "worker-token",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "worker-token",
+            "secret": {
+              "defaultMode": 288,
+              "secretName": "rtl-worker-client"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "tekton.dev/v1",
+      "kind": "Pipeline",
+      "metadata": {
+        "name": "rtl-l20-experiment-v1",
+        "namespace": "rtl-pipelines"
+      },
+      "spec": {
+        "finally": [
+          {
+            "name": "record",
+            "params": [
+              {
+                "name": "job-id",
+                "value": "$(params.job-id)"
+              },
+              {
+                "name": "run-uid",
+                "value": "$(context.pipelineRun.uid)"
+              }
+            ],
+            "taskRef": {
+              "kind": "Task",
+              "name": "rtl-l20-record-v1"
+            },
+            "timeout": "2m0s"
+          }
+        ],
+        "params": [
+          {
+            "name": "job-id",
+            "type": "string"
+          }
+        ],
+        "results": [
+          {
+            "description": "",
+            "name": "comparison",
+            "value": "$(tasks.compare.results.proof)"
+          },
+          {
+            "description": "",
+            "name": "outcome",
+            "value": "$(tasks.compare.results.outcome)"
+          }
+        ],
+        "tasks": [
+          {
+            "name": "baseline",
+            "params": [
+              {
+                "name": "job-id",
+                "value": "$(params.job-id)"
+              },
+              {
+                "name": "run-uid",
+                "value": "$(context.pipelineRun.uid)"
+              }
+            ],
+            "retries": 1,
+            "taskRef": {
+              "kind": "Task",
+              "name": "rtl-l20-baseline-v1"
+            },
+            "timeout": "20m0s"
+          },
+          {
+            "name": "training",
+            "params": [
+              {
+                "name": "job-id",
+                "value": "$(params.job-id)"
+              },
+              {
+                "name": "run-uid",
+                "value": "$(context.pipelineRun.uid)"
+              }
+            ],
+            "retries": 1,
+            "runAfter": [
+              "baseline"
+            ],
+            "taskRef": {
+              "kind": "Task",
+              "name": "rtl-l20-training-v1"
+            },
+            "timeout": "50m0s"
+          },
+          {
+            "name": "candidate",
+            "params": [
+              {
+                "name": "job-id",
+                "value": "$(params.job-id)"
+              },
+              {
+                "name": "run-uid",
+                "value": "$(context.pipelineRun.uid)"
+              }
+            ],
+            "retries": 1,
+            "runAfter": [
+              "training"
+            ],
+            "taskRef": {
+              "kind": "Task",
+              "name": "rtl-l20-candidate-v1"
+            },
+            "timeout": "20m0s"
+          },
+          {
+            "name": "compare",
+            "params": [
+              {
+                "name": "job-id",
+                "value": "$(params.job-id)"
+              },
+              {
+                "name": "run-uid",
+                "value": "$(context.pipelineRun.uid)"
+              }
+            ],
+            "retries": 1,
+            "runAfter": [
+              "candidate"
+            ],
+            "taskRef": {
+              "kind": "Task",
+              "name": "rtl-l20-compare-v1"
+            },
+            "timeout": "20m0s"
+          }
+        ]
+      }
+    }
+  ]
+}
