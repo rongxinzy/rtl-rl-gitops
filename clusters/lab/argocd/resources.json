@@ -46458,7 +46458,10 @@
           "app.kubernetes.io/name": "argocd-repo-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-repo-server"
+        "name": "argocd-repo-server",
+        "annotations": {
+          "rtl.ai/github-resolution-note": "2026-09-13: official GitHub meta.web endpoint; default DNS 20.205.243.166 TCP443 unreachable; TLS verification retained. Revalidate/remove when DNS route recovers."
+        }
       },
       "spec": {
         "selector": {
@@ -47148,6 +47151,14 @@
                   "optional": true
                 },
                 "name": "argocd-cmd-params-cm"
+              }
+            ],
+            "hostAliases": [
+              {
+                "ip": "20.27.177.113",
+                "hostnames": [
+                  "github.com"
+                ]
               }
             ]
           }

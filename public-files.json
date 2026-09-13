@@ -12,6 +12,7 @@
   "clusters/lab/rtl-pipelines/resources.json",
   "clusters/lab/rtl-system/resources.json",
   "clusters/lab/tekton-platform/resources.json",
+  "docs/OPERATIONS.md",
   "docs/SECRETS.md",
   "host/README.md",
   "host/check_sources.py",
