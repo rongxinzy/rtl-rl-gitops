@@ -16,22 +16,25 @@ METADATA_VERSION = 2
 
 def presentation(job, device=None):
     meta = job.get('metadata', {})
+    pro = job.get('source') == 'pro6000d'
+    host = 'pro6000D' if pro else 'L20'
+    device = job.get('device_observation', device)
     config = {k: job[k] for k in ('job_id', 'job_sha256', 'model_revision', 'dataset_id', 'max_steps')}
     config.update(meta)
     if device:
         config['training_device_observation'] = device
-    config.update(model='Qwen/Qwen3.8-27B', stage='l20_qlora_sft',
+    config.update(model='Qwen/Qwen3.8-27B', stage='pro_qlora_sft' if pro else 'l20_qlora_sft',
         task_type='RTL domain supervised fine-tuning', metadata_version=METADATA_VERSION,
         scope='Training metrics only; independent baseline/candidate evaluation determines capability.',
         log_source='Structured training and checkpoint events reconstructed from validated metric files',
-        telemetry_transport='L20 read-only collection -> online host -> SwanLab')
+        telemetry_transport=host + ' read-only collection -> online host -> SwanLab')
     desc = ('Official Qwen3.8-27B RTL domain adaptation with single-GPU NF4 QLoRA SFT. '
         'Train on validated RTL examples and grounded knowledge, preserve resumable checkpoints, '
         'then evaluate the candidate independently. This run records the SFT stage, not GRPO or an improvement claim. '
         f"Job: {job['job_id']}; dataset: {job['dataset_id']}; budget: {job['max_steps']} steps. "
-        'Device fields describe the L20 training host at telemetry observation time, not the relay host. '
+        f'Device fields describe the {host} training host at telemetry observation time, not the relay host. '
         'Logs are structured events; raw data, prompts and secrets are excluded.')
-    tags = ['RTL','SystemVerilog','SFT','QLoRA','NF4','Qwen3.8-27B','L20','single-GPU','bounded-experiment']
+    tags = ['RTL','SystemVerilog','SFT','QLoRA','NF4','Qwen3.8-27B',host,'single-GPU','bounded-experiment']
     if meta.get('training_backend') == 'LLaMA-Factory':
         tags.append('LLaMA-Factory')
         desc += ' Training backend: LLaMA-Factory; source commit is recorded in Config.'
@@ -51,7 +54,19 @@ def atomic(path, value):
 
 
 def run_id(job):
-    return 'l20-' + hashlib.sha256((job['job_id'] + ':' + job['job_sha256']).encode()).hexdigest()[:24]
+    prefix = 'pro-' if job.get('source') == 'pro6000d' else 'l20-'
+    return prefix + hashlib.sha256((job['job_id'] + ':' + job['job_sha256']).encode()).hexdigest()[:24]
+
+
+def receipt_terminal(job, receipt):
+    if receipt.get('status') not in ('completed', 'failed', 'paused') or receipt.get('job_sha256') != job['job_sha256'] or receipt.get('metadata_version') != METADATA_VERSION:
+        return False
+    if job.get('source') == 'pro6000d' and receipt.get('status') in ('failed', 'paused'):
+        previous = receipt.get('attempt_started_at', 0)
+        current = job.get('attempt_started_at', 0)
+        if type(previous) in (int, float) and type(current) in (int, float) and current > previous:
+            return False
+    return True
 
 
 def snapshot():
@@ -76,11 +91,16 @@ def worker(ident):
         while not stopping[0]:
             data = snapshot()
             job = next(j for j in data['jobs'] if j['job_id'] == ident)
+            if job.get('source_stale'):
+                info.update(status='source_stale', observed_at=time.time(), source_observed_at=job.get('source_observed_at'))
+                atomic(record, info)
+                time.sleep(10)
+                continue
             if run is None:
                 config, description, tags = presentation(job, data.get('device_observation'))
                 run = swanlab.init(project=os.environ.get('RTL_SWANLAB_PROJECT', 'RTL-RL'), public=False,
-                    name='RTL SFT | Qwen3.8-27B | ' + ident, id=run_id(job), resume='allow', mode='online', config=config,
-                    description=description, job_type='rtl-qlora-sft', group='Qwen3.8-27B-RTL-L20', tags=tags,
+                    name=('RTL SFT | pro6000D | Qwen3.8-27B | ' if job.get('source') == 'pro6000d' else 'RTL SFT | Qwen3.8-27B | ') + ident, id=run_id(job), resume='allow', mode='online', config=config,
+                    description=description, job_type='rtl-qlora-sft', group='Qwen3.8-27B-RTL-' + ('pro6000D' if job.get('source') == 'pro6000d' else 'L20'), tags=tags,
                     log_dir=str(STATE / 'sdk'), settings=swanlab.Settings(interactive=False,
                         terminal={'proxy_type': 'stdout'}, probe={'hardware': False, 'runtime': False,
                         'requirements': False, 'git': False, 'swanlab': False, 'monitor': False}))
@@ -103,8 +123,17 @@ def worker(ident):
                     detail = next((e for e in job.get('events', []) if e.get('step') == row['step']), row)
                     event_log({'event':'training_step','job_id':ident, **detail})
                     sent = row['step']
+            if job.get('source') == 'pro6000d':
+                info['attempt_started_at'] = job.get('attempt_started_at')
             info.update(status='running', step=sent, observed_at=time.time(), phase=job['phase'], metadata_version=METADATA_VERSION)
             atomic(record, info)
+            if job.get('source') == 'pro6000d' and job['phase'] == 'paused':
+                event_log({'event':'training_paused','job_id':ident,'step':sent})
+                swanlab.finish(state='aborted')
+                run = None
+                info.update(status='paused', sdk_finish_returned=True, finished_at=time.time())
+                atomic(record, info)
+                return 0
             if job['training_complete'] or job['phase'] == 'failed':
                 ok = job['training_complete']
                 event_log({'event':'training_finished' if ok else 'training_failed','job_id':ident,
@@ -152,15 +181,15 @@ def supervise():
             jobs = sorted(data['jobs'], key=lambda j: j['training_complete'])
             for job in jobs:
                 ident = job['job_id']
-                if ident in children or time.time() < retry.get(ident, 0) or len(children) >= 2:
+                if job.get('source_stale') or ident in children or time.time() < retry.get(ident, 0) or len(children) >= 2:
                     continue
                 path = STATE / (ident + '.json')
                 receipt = json.loads(path.read_text()) if path.exists() else {}
-                if receipt.get('status') in ('completed', 'failed') and receipt.get('job_sha256') == job['job_sha256'] and receipt.get('metadata_version') == METADATA_VERSION:
+                if receipt_terminal(job, receipt):
                     continue
                 children[ident] = subprocess.Popen([sys.executable, __file__, '--worker', ident],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            health.update(status='healthy', jobs=len(jobs), rejected=data.get('rejected', []))
+            health.update(status='source_stale' if any(v.get('stale') for v in data.get('sources', {}).values()) else 'healthy', jobs=len(jobs), rejected=data.get('rejected', []), sources=data.get('sources', {}))
         except Exception as exc:
             health.update(status='source_unavailable', error_type=type(exc).__name__)
         atomic(STATE / 'heartbeat.json', health)

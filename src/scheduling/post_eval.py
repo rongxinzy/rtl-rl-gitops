@@ -20,10 +20,17 @@ def run(root,cfg,out,deadline):
         if not isinstance(freeze_id,str) or len(freeze_id)!=64 or any(c not in '0123456789abcdef' for c in freeze_id):raise ValueError('Invalid freeze ID')
         command+=['--freeze-file',str(root/'research/evaluation/artifacts/frozen'/(freeze_id+'.json'))]
     try:
-        result=subprocess.run(command,capture_output=True,text=True,timeout=1740)
-        data=json.loads(result.stdout)
-        verified=result.returncode==0 and data.get('comparison_complete') is True and data.get('job_id')==cfg['job_id']
-        atomic(out/'post-eval-status.json',{'status':'complete' if verified else 'deferred','returncode':result.returncode,
+        if cfg.get('backend')=='llamafactory':
+            from llamafactory_runner import evaluation_process
+            command+=['--root',str(root),'--job-id',cfg['job_id'],'--runtime-image-id',cfg['image_id']]
+            data=evaluation_process(root,out,command,deadline,phase='candidate',budget=1740)
+            returncode=0
+        else:
+            result=subprocess.run(command,capture_output=True,text=True,timeout=1740)
+            data=json.loads(result.stdout)
+            returncode=result.returncode
+        verified=returncode==0 and data.get('comparison_complete') is True and data.get('job_id')==cfg['job_id']
+        atomic(out/'post-eval-status.json',{'status':'complete' if verified else 'deferred','returncode':returncode,
             'comparison_path':data.get('comparison_path'),'outcome':data.get('outcome'),'error_type':data.get('error_type')})
         if verified:pending.unlink(missing_ok=True)
         return verified
