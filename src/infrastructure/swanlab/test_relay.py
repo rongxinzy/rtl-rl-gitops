@@ -88,6 +88,32 @@ class RelayTests(unittest.TestCase):
         self.assertNotIn('sensitive', json.dumps(self.receipt()))
         self.assertNotIn('sdk_finish_returned', self.receipt())
 
+    def test_rich_presentation_records_training_host_and_task(self):
+        job = {**self.job, 'secret': 'must-not-appear',
+               'metadata': {'orchestrator': 'tekton', 'rank': 8,
+                            'data_preflight': {'examples': 12}}}
+        device = {'scope': 'current_source_host_observation',
+                  'historical_training_hardware_verified': False,
+                  'training_gpu': {'index': 0, 'name': 'NVIDIA L20'}, 'host_gpu_count': 2}
+        config, description, tags = relay.presentation(job, device)
+        self.assertEqual(config['training_device_observation'], device)
+        self.assertEqual(config['rank'], 8)
+        self.assertEqual(config['metadata_version'], 2)
+        self.assertIn('supervised', config['task_type'])
+        self.assertIn('validated metric files', config['log_source'])
+        self.assertIn('not the relay host', description)
+        self.assertIn('Tekton', tags)
+        self.assertNotIn('must-not-appear', json.dumps(config))
+        data = {'schema_version': 1, 'device_observation': device,
+                'jobs': [{**job, 'training_complete': True}]}
+        with patch.object(relay, 'snapshot', return_value=data):
+            self.assertEqual(relay.worker(job['job_id']), 0)
+        args = self.sdk.init.call_args.kwargs
+        self.assertEqual(args['job_type'], 'rtl-qlora-sft')
+        self.assertEqual(args['group'], 'Qwen3.8-27B-RTL-L20')
+        self.assertTrue(args['description'])
+        self.assertIn('QLoRa'.lower(), [x.lower() for x in args['tags']])
+
 
 if __name__ == '__main__':
     unittest.main()

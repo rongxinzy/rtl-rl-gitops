@@ -7,6 +7,9 @@ import os
 from pathlib import Path
 import re
 import stat
+import subprocess
+import platform
+from datetime import datetime, timezone
 
 REVISION = '1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0'
 ROOT = Path('/mnt/data/rtl-l20-training/worker/jobs')
@@ -15,7 +18,8 @@ PHASES = {'queued', 'baseline', 'training', 'candidate', 'complete', 'failed',
           'awaiting_baseline_authorization', 'awaiting_training_authorization',
           'awaiting_candidate_authorization', 'awaiting_evaluation'}
 ALLOWED = {'run/job.json', 'state.json', 'run/metrics.jsonl',
-           'run/training_metrics.json', 'run/trainer_state_final.json'}
+           'run/training_metrics.json', 'run/trainer_state_final.json',
+           'job.json', 'run/data-preflight.json', 'run/model-report.json'}
 
 
 def read(folder, relative):
@@ -33,6 +37,110 @@ def read(folder, relative):
             return stream.read(8 * 1024 * 1024 + 1)
     finally:
         os.close(fd)
+
+
+def optional_json(folder, name):
+    try:
+        value = json.loads(read(folder, name))
+        return value if isinstance(value, dict) else {}
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
+def token(value, pattern=r'[A-Za-z0-9_.-]{1,160}'):
+    return value if isinstance(value, str) and re.fullmatch(pattern, value) else None
+
+
+def metadata(folder, identity):
+    result = {'model_repo': 'Qwen/Qwen3.8-27B'}
+    for key in ('max_length', 'rank', 'seed'):
+        value = identity.get(key)
+        if type(value) is int and 0 <= value <= 10000000:
+            result[key] = value
+    lr = identity.get('learning_rate')
+    if type(lr) in (int, float) and math.isfinite(lr) and 0 < lr <= 1:
+        result['learning_rate'] = lr
+    for key in ('model_manifest_sha256', 'data_sha256'):
+        if token(identity.get(key), r'[a-f0-9]{64}'):
+            result[key] = identity[key]
+    recipes = identity.get('recipe_sha256', {})
+    if isinstance(recipes, dict):
+        result['recipe_sha256'] = {key: recipes[key] for key in
+            ('train.py', 'model.py', 'state.py', 'provenance.py', 'knowledge_data.py')
+            if token(recipes.get(key), r'[a-f0-9]{64}')}
+    job = optional_json(folder, 'job.json')
+    for key in ('image_id', 'freeze_id', 'knowledge_freeze_id'):
+        pattern = r'sha256:[a-f0-9]{64}' if key == 'image_id' else r'[A-Za-z0-9_.-]{1,160}'
+        if token(job.get(key), pattern):
+            result[key] = job[key]
+    if job.get('orchestrator') in ('tekton', 'brain', 'manual'):
+        result['orchestrator'] = job['orchestrator']
+    preflight = optional_json(folder, 'run/data-preflight.json')
+    data = {}
+    for key in ('examples', 'dropped_overlength'):
+        value = preflight.get(key)
+        if type(value) is int and 0 <= value <= 1000000000:
+            data[key] = value
+    families = preflight.get('families')
+    if isinstance(families, list):
+        data['families'] = sorted({x for x in families[:1000] if token(x, r'[a-z][a-z0-9_]{0,63}')})
+    result['data_preflight'] = data
+    report = optional_json(folder, 'run/model-report.json')
+    model = {}
+    for key in ('architecture', 'bitsandbytes'):
+        if token(report.get(key)):
+            model[key] = report[key]
+    for key in ('trainable_parameters', 'quantized_modules'):
+        value = report.get(key)
+        if type(value) is int and 0 <= value <= 1000000000000:
+            model[key] = value
+    targets = report.get('target_modules')
+    if isinstance(targets, list):
+        # Publish module types and count, not arbitrary report text or full paths.
+        permitted = {'q_proj', 'k_proj', 'v_proj', 'o_proj', 'in_proj_qkv', 'in_proj_z',
+                     'out_proj', 'gate_proj', 'up_proj', 'down_proj'}
+        safe = [x for x in targets if isinstance(x, str) and
+                re.fullmatch(r'[A-Za-z0-9_.]{1,250}', x) and x.rsplit('.', 1)[-1] in permitted]
+        model['target_module_count'] = len(safe)
+        model['target_module_types'] = sorted({x.rsplit('.', 1)[-1] for x in safe})
+    result['model_report'] = model
+    return result
+
+
+def observe_device():
+    """Current host observation, explicitly not historical run hardware evidence."""
+    result = {'observed_at': datetime.now(timezone.utc).isoformat(),
+              'scope': 'current_source_host_observation',
+              'historical_training_hardware_verified': False,
+              'cpu_logical_count': os.cpu_count(), 'architecture': platform.machine(),
+              'training_gpu_index': 0, 'host_gpu_count': None, 'training_gpu': None}
+    try:
+        match = re.search(r'^MemTotal:\s+(\d+) kB$', Path('/proc/meminfo').read_text(), re.M)
+        if match:
+            result['host_memory_bytes'] = int(match[1]) * 1024
+    except OSError:
+        pass
+    try:
+        output = subprocess.run(['/usr/bin/querygpu',
+            '--query-gpu=index,name,memory.total,driver_version',
+            '--format=csv,noheader,nounits'], capture_output=True, text=True,
+            timeout=5, check=True).stdout
+        rows = [line.split(',') for line in output.splitlines() if line.strip()]
+        parsed = []
+        for row in rows:
+            if len(row) != 4:
+                raise ValueError('invalid_gpu_observation')
+            index, name, memory, driver = [x.strip() for x in row]
+            if not (index.isdigit() and token(name, r'[A-Za-z0-9 ()_.-]{1,100}') and
+                    token(driver, r'[0-9.]{1,30}') and memory.isdigit()):
+                raise ValueError('invalid_gpu_observation')
+            parsed.append({'index': int(index), 'name': name,
+                           'memory_total_mib': int(memory), 'driver_version': driver})
+        result['host_gpu_count'] = len(parsed)
+        result['training_gpu'] = next((x for x in parsed if x['index'] == 0), None)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+    return result
 
 
 def collect(folder):
@@ -57,6 +165,7 @@ def collect(folder):
     # The writer flushes a whole JSON line. Never interpret a partial trailing line.
     lines = metrics.split(b'\n')[:-1]
     steps = []
+    events = []
     for expected, line in enumerate(lines, 1):
         row = json.loads(line)
         if type(row.get('step')) is not int or row['step'] != expected or expected > max_steps:
@@ -66,7 +175,16 @@ def collect(folder):
             raise ValueError('invalid_scalar')
         if values['gradient_norm'] <= 0 or values['peak_allocated_bytes'] < 0:
             raise ValueError('invalid_scalar')
+        event = {'event': 'training_step', 'step': expected, **values}
+        seconds = row.get('seconds')
+        if type(seconds) in (int, float) and math.isfinite(seconds) and seconds >= 0:
+            values['seconds'] = seconds
+            event['seconds'] = seconds
+        checkpoint = row.get('checkpoint')
+        if token(checkpoint, r'checkpoint-[0-9]{1,9}'):
+            event['checkpoint'] = checkpoint
         steps.append({'step': expected, **values})
+        events.append(event)
     final_records = []
     for name in ('training_metrics.json', 'trainer_state_final.json'):
         try:
@@ -86,11 +204,13 @@ def collect(folder):
         raise ValueError('identity_changed')
     return {'job_id': folder.name, 'model_revision': REVISION, 'dataset_id': dataset,
             'job_sha256': binding, 'max_steps': max_steps, 'phase': phase,
-            'training_complete': complete, 'steps': steps}
+            'training_complete': complete, 'steps': steps, 'events': events,
+            'metadata_version': 2, 'metadata': metadata(folder, identity)}
 
 
 def snapshot(root=ROOT):
-    result = {'schema_version': 1, 'jobs': [], 'rejected': []}
+    result = {'schema_version': 1, 'metadata_version': 2,
+              'device_observation': observe_device(), 'jobs': [], 'rejected': []}
     for folder in sorted(root.glob('l20-*')):
         if not re.fullmatch(r'l20-[a-f0-9]{24}', folder.name):
             continue
