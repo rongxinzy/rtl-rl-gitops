@@ -87,6 +87,14 @@ class Tests(unittest.TestCase):
   self.state['pending']=next(iter(self.options().values()));pods=self.inv['rtl-system'][2];pods[0]['metadata']['uid']='new';pods[0]['status']['conditions'][0]['status']='True';pods[0]['metadata']['ownerReferences'][0]['uid']='other';r,api=self.cycle();self.assertEqual(r['recovery_progress'],'delayed');self.assertIn('pending',self.state)
  def test_pending_real_replacement_success(self):
   self.state['pending']=next(iter(self.options().values()));pods=self.inv['rtl-system'][2];pods[0]['metadata']['uid']='new';pods[0]['status']['conditions'][0]['status']='True';r,api=self.cycle();self.assertEqual(r['recovery_progress'],'recovered');self.assertNotIn('pending',self.state)
+ def test_admission_dynamic_resource_maps(self):
+  policy=json.loads(Path(__file__).with_name('admission.json').read_text())['items'][0]
+  expression=policy['spec']['validations'][0]['expression']
+  self.assertIn("'limits' in dyn(c.resources)",expression)
+  self.assertIn("'requests' in dyn(c.resources)",expression)
+  self.assertIn('oldObject.spec.initContainers.exists',expression)
+  self.assertIn("k.endsWith('/gpu')",expression)
+  self.assertNotIn('c.resources.limits',expression)
  def test_resources_no_secret_read_permissions(self):
   items=json.loads(Path(__file__).with_name('resources.json').read_text())['items']
   for item in items:
