@@ -155,11 +155,11 @@
           }
         },
         "strategy": {
+          "type": "RollingUpdate",
           "rollingUpdate": {
             "maxSurge": 0,
             "maxUnavailable": 1
-          },
-          "type": "RollingUpdate"
+          }
         },
         "template": {
           "metadata": {
@@ -208,8 +208,8 @@
                     "value": "rtl-system"
                   }
                 ],
-                "image": "rtl-router:20260913-v2",
-                "imagePullPolicy": "IfNotPresent",
+                "image": "docker.io/library/rtl-router@sha256:c7c35c7fab40bc780eeb9c3d005cf4820c467dfe302229151586580587fa9ef3",
+                "imagePullPolicy": "Never",
                 "lifecycle": {
                   "preStop": {
                     "exec": {
@@ -389,8 +389,8 @@
                     }
                   }
                 ],
-                "image": "rtl-operator:20260913-v4",
-                "imagePullPolicy": "IfNotPresent",
+                "image": "docker.io/library/rtl-operator@sha256:e82e9a76e1f85625ea5bcd4e60341adcb0420ae358d662773d8836726f956fc8",
+                "imagePullPolicy": "Never",
                 "name": "controller",
                 "resources": {
                   "limits": {

@@ -1,0 +1,59 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "kind": "ValidatingAdmissionPolicy",
+      "metadata": {
+        "name": "rtl-ops-agent-pod-delete"
+      },
+      "spec": {
+        "failurePolicy": "Fail",
+        "matchConstraints": {
+          "resourceRules": [
+            {
+              "apiGroups": [
+                ""
+              ],
+              "apiVersions": [
+                "v1"
+              ],
+              "operations": [
+                "DELETE"
+              ],
+              "resources": [
+                "pods"
+              ]
+            }
+          ]
+        },
+        "matchConditions": [
+          {
+            "name": "ops-identity",
+            "expression": "request.userInfo.username == 'system:serviceaccount:rtl-brain:rtl-ops-agent'"
+          }
+        ],
+        "validations": [
+          {
+            "expression": "oldObject != null && has(oldObject.metadata.labels) && 'app' in oldObject.metadata.labels && ((request.namespace == 'rtl-system' && oldObject.metadata.labels.app in ['glm-router', 'rtl-operator']) || (request.namespace == 'rtl-brain' && oldObject.metadata.labels.app == 'rtl-ops-recovery-canary')) && has(oldObject.metadata.ownerReferences) && oldObject.metadata.ownerReferences.exists(r, r.kind == 'ReplicaSet' && has(r.controller) && r.controller) && !oldObject.spec.containers.exists(c, has(c.resources) && ((has(c.resources.limits) && c.resources.limits.exists(k, k.endsWith('/gpu'))) || (has(c.resources.requests) && c.resources.requests.exists(k, k.endsWith('/gpu'))))) && (!has(oldObject.spec.initContainers) || !oldObject.spec.initContainers.exists(c, has(c.resources) && ((has(c.resources.limits) && c.resources.limits.exists(k, k.endsWith('/gpu'))) || (has(c.resources.requests) && c.resources.requests.exists(k, k.endsWith('/gpu'))))))",
+            "message": "Ops recovery may delete only approved redundant Deployment pods; GPU and other workloads are protected."
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "kind": "ValidatingAdmissionPolicyBinding",
+      "metadata": {
+        "name": "rtl-ops-agent-pod-delete"
+      },
+      "spec": {
+        "policyName": "rtl-ops-agent-pod-delete",
+        "validationActions": [
+          "Deny"
+        ]
+      }
+    }
+  ]
+}

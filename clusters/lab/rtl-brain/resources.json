@@ -241,9 +241,17 @@
                       {
                         "name": "MODEL_INTERVAL_SECONDS",
                         "value": "900"
+                      },
+                      {
+                        "name": "BACKGROUND_ROUTER_URL",
+                        "value": "http://glm-router.rtl-system.svc:8000"
+                      },
+                      {
+                        "name": "BACKGROUND_ROUTER_KEY_FILE",
+                        "value": "/secrets/router-background-key"
                       }
                     ],
-                    "image": "rtl-brain:20260913-v12",
+                    "image": "docker.io/library/rtl-brain@sha256:9546ecb754e60bf985508d6981677ce971b751072da46fc316672912a1aae12a",
                     "imagePullPolicy": "Never",
                     "name": "brain",
                     "resources": {
@@ -626,6 +634,560 @@
       "data": {
         "purpose": "Non-runtime marker for Git delivery and self-heal acceptance",
         "revision": "gitops-auto-v2"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-brain"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "rtl-ops-agent-state",
+        "namespace": "rtl-brain",
+        "annotations": {
+          "argocd.argoproj.io/sync-options": "Prune=false,Delete=false"
+        }
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "1Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-system"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "deployments",
+            "replicasets"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "rtl.rongxin.ai"
+          ],
+          "resources": [
+            "inferenceschedules"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-system"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-ops-agent"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-brain"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "deployments",
+            "replicasets"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "batch"
+          ],
+          "resources": [
+            "cronjobs"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-brain"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-ops-agent"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "argocd"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "argoproj.io"
+          ],
+          "resources": [
+            "applications"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "argocd"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-ops-agent"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-pipelines"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "tekton.dev"
+          ],
+          "resources": [
+            "pipelineruns"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-pipelines"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-ops-agent"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "rtl-ops-agent-nodes"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "nodes"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "ClusterRoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent-nodes"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "rtl-ops-agent-nodes"
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "CronJob",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-brain"
+      },
+      "spec": {
+        "schedule": "* * * * *",
+        "concurrencyPolicy": "Forbid",
+        "successfulJobsHistoryLimit": 2,
+        "failedJobsHistoryLimit": 3,
+        "jobTemplate": {
+          "spec": {
+            "backoffLimit": 0,
+            "activeDeadlineSeconds": 280,
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "rtl-ops-agent"
+                }
+              },
+              "spec": {
+                "serviceAccountName": "rtl-ops-agent",
+                "restartPolicy": "Never",
+                "nodeSelector": {
+                  "kubernetes.io/hostname": "rtl-control"
+                },
+                "securityContext": {
+                  "runAsNonRoot": true,
+                  "runAsUser": 65532,
+                  "runAsGroup": 65532,
+                  "fsGroup": 65532
+                },
+                "containers": [
+                  {
+                    "name": "agent",
+                    "image": "docker.io/library/rtl-ops-agent@sha256:d23af1f0535de7a4456015c9e131cd7101a9f96f2dc6a864fd74ba73f5785ec7",
+                    "imagePullPolicy": "Never",
+                    "env": [
+                      {
+                        "name": "DRY_RUN",
+                        "value": "true"
+                      },
+                      {
+                        "name": "RECOVERY_DEPLOYMENTS",
+                        "value": "[\"rtl-system/glm-router\", \"rtl-system/rtl-operator\", \"rtl-brain/rtl-ops-recovery-canary\"]"
+                      },
+                      {
+                        "name": "BACKGROUND_ROUTER_URL",
+                        "value": "http://glm-router.rtl-system.svc:8000"
+                      },
+                      {
+                        "name": "BACKGROUND_ROUTER_KEY_FILE",
+                        "value": "/secrets/router-background-key"
+                      },
+                      {
+                        "name": "PLAN_INTERVAL_SECONDS",
+                        "value": "900"
+                      }
+                    ],
+                    "resources": {
+                      "requests": {
+                        "cpu": "20m",
+                        "memory": "64Mi"
+                      },
+                      "limits": {
+                        "cpu": "250m",
+                        "memory": "256Mi"
+                      }
+                    },
+                    "securityContext": {
+                      "allowPrivilegeEscalation": false,
+                      "readOnlyRootFilesystem": true,
+                      "capabilities": {
+                        "drop": [
+                          "ALL"
+                        ]
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "state",
+                        "mountPath": "/state"
+                      },
+                      {
+                        "name": "models",
+                        "mountPath": "/secrets",
+                        "readOnly": true
+                      }
+                    ]
+                  }
+                ],
+                "volumes": [
+                  {
+                    "name": "state",
+                    "persistentVolumeClaim": {
+                      "claimName": "rtl-ops-agent-state"
+                    }
+                  },
+                  {
+                    "name": "models",
+                    "secret": {
+                      "secretName": "rtl-brain-secrets",
+                      "items": [
+                        {
+                          "key": "primary-key",
+                          "path": "primary-key"
+                        },
+                        {
+                          "key": "backup-key",
+                          "path": "backup-key"
+                        },
+                        {
+                          "key": "fallback.json",
+                          "path": "fallback.json"
+                        },
+                        {
+                          "key": "router-background-key",
+                          "path": "router-background-key"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "suspend": true
+      }
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "kind": "ValidatingAdmissionPolicy",
+      "metadata": {
+        "name": "rtl-ops-agent-pod-delete"
+      },
+      "spec": {
+        "failurePolicy": "Fail",
+        "matchConstraints": {
+          "resourceRules": [
+            {
+              "apiGroups": [
+                ""
+              ],
+              "apiVersions": [
+                "v1"
+              ],
+              "operations": [
+                "DELETE"
+              ],
+              "resources": [
+                "pods"
+              ]
+            }
+          ]
+        },
+        "matchConditions": [
+          {
+            "name": "ops-identity",
+            "expression": "request.userInfo.username == 'system:serviceaccount:rtl-brain:rtl-ops-agent'"
+          }
+        ],
+        "validations": [
+          {
+            "expression": "oldObject != null && has(oldObject.metadata.labels) && 'app' in oldObject.metadata.labels && ((request.namespace == 'rtl-system' && oldObject.metadata.labels.app in ['glm-router', 'rtl-operator']) || (request.namespace == 'rtl-brain' && oldObject.metadata.labels.app == 'rtl-ops-recovery-canary')) && has(oldObject.metadata.ownerReferences) && oldObject.metadata.ownerReferences.exists(r, r.kind == 'ReplicaSet' && has(r.controller) && r.controller) && !oldObject.spec.containers.exists(c, has(c.resources) && ((has(c.resources.limits) && c.resources.limits.exists(k, k.endsWith('/gpu'))) || (has(c.resources.requests) && c.resources.requests.exists(k, k.endsWith('/gpu'))))) && (!has(oldObject.spec.initContainers) || !oldObject.spec.initContainers.exists(c, has(c.resources) && ((has(c.resources.limits) && c.resources.limits.exists(k, k.endsWith('/gpu'))) || (has(c.resources.requests) && c.resources.requests.exists(k, k.endsWith('/gpu'))))))",
+            "message": "Ops recovery may delete only approved redundant Deployment pods; GPU and other workloads are protected."
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "kind": "ValidatingAdmissionPolicyBinding",
+      "metadata": {
+        "name": "rtl-ops-agent-pod-delete"
+      },
+      "spec": {
+        "policyName": "rtl-ops-agent-pod-delete",
+        "validationActions": [
+          "Deny"
+        ]
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-ops-agent-recovery",
+        "namespace": "rtl-system"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods"
+          ],
+          "verbs": [
+            "delete"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent-recovery",
+        "namespace": "rtl-system"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-ops-agent-recovery"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-ops-agent-recovery",
+        "namespace": "rtl-brain"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods"
+          ],
+          "verbs": [
+            "delete"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent-recovery",
+        "namespace": "rtl-brain"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-ops-agent-recovery"
       }
     }
   ]

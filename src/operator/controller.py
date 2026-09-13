@@ -164,6 +164,7 @@ def reconcile(obj, effects, now):
     if spec.get('controlMode', 'Observe') != 'Active':
         return result
     route = effects.router()
+    result['traffic'] = {k:route[k] for k in ('primary_inflight','backup_inflight','business_idle_seconds','last_background_at','protected_inflight','background_inflight','background_rejected_total','healthy_backends') if k in route}
     target = result['desiredMode']
     if host.get('idle_after_completion'):
         target = 'Inference'

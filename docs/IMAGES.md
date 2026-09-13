@@ -37,3 +37,15 @@
 - 已运行Pod身份保持、Argo Synced与Never策略，证明声明接管没有重启现有服务；不证明空节点恢复或镜像可重复构建。
 
 建议交付措辞：已提供Kubernetes GitOps声明、主机bootstrap白名单与核心服务源码，当前部署依赖预置镜像和外部持久数据；独立冷启动镜像构建/发布/导入链仍需补齐并验收。本次不修改现有image或pull policy，避免把接管变成意外升级。
+
+
+## Ops and traffic identity (2026-09-14)
+
+Locally built and imported on control/L20 before deployment; imagePullPolicy Never. These manifests reference OCI manifest digests, not Docker config IDs.
+
+- router: c7c35c7fab40bc780eeb9c3d005cf4820c467dfe302229151586580587fa9ef3; includes timezone data from rtl-operator:20260913-v4.
+- coordinator: 9546ecb754e60bf985508d6981677ce971b751072da46fc316672912a1aae12a.
+- operator: e82e9a76e1f85625ea5bcd4e60341adcb0420ae358d662773d8836726f956fc8; copies current controller.py over rtl-operator:20260913-v4.
+- ops agent: d23af1f0535de7a4456015c9e131cd7101a9f96f2dc6a864fd74ba73f5785ec7; BASE_IMAGE=rtl-brain:20260913-v12, with the same updated providers.py as coordinator.
+
+Background router credentials are provisioned privately into the existing router and Brain Secrets; values are never in Git. Existing New API credentials stay protected. Initial ops CronJob is suspended until live read-only, admission-denial and isolated recovery acceptance. The read-only and active acceptance jobs use separate state directories; production budgets are not reset for tests.
