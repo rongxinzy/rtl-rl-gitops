@@ -27,3 +27,35 @@ pro6000D 路径：
 每个任务的状态 JSON 保存 run ID、链接、已提交给 SDK 的步数和 SDK finish 返回情况。它不替代云端独立验收。SDK 标准输出不转发到 systemd 日志，日志中不输出原始 API 异常。
 
 启动 `rtl-swanlab-collect.timer` 和 `rtl-swanlab-relay.service`；二者均不访问 GPU、不停止训练。当前采用已有宿主机 Docker/systemd 边界，因此这些 unit 是可审查的主机配置，不是 Argo 自动管理的 Kubernetes 工作负载。
+
+### Pro6000D LLaMA-Factory source
+
+`pro_source.py` collects only `runs/<job>/job-config.json` and explicitly listed
+`train-run` identity, scalar metrics, preflight/model summaries and final metrics.
+It does not read raw worker logs, training examples, prompts, checkpoints or
+credentials. The official model revision, pinned LLaMA-Factory commit, dataset,
+step budget, rank/length and full recipe digest set must agree between outer job
+and native training identity. A cloud run appears only after the native identity
+exists. Completion requires both identity-bound final metric files and every
+expected metric step; a scheduler or evaluation status is not training progress.
+
+Deploy `pro_source.py` and its `source.py` helper beside `collect.py` on pro6000D
+(the online source host). The collector merges this local source with the existing
+forced-command L20 SSH source. If a source is unavailable, its last scalar snapshot
+is retained with `source_stale=true` and unchanged observation time/steps. The relay
+waits rather than uploading or finishing from stale data; the other source continues.
+No source error response or SSH stderr is stored in the published snapshot.
+
+Pro jobs use their own device observation, `pro6000D` tag/group/name and `pro-`
+SwanLab run-ID prefix. Existing L20 run IDs retain their original exact hash and
+prefix. The observed hardware is current source-host telemetry, not a claim that
+historical training hardware was verified. No training, GPU lifecycle or model API
+ownership moves to this reporter.
+
+Pro lifecycle additionally reads only `last-start.json` and `last-exit.json`.
+An exit applies only when its finite timestamp is at least the latest start's;
+old exit/pause files do not describe a newer attempt. A current nonzero exit marks
+failure; a zero exit with identity-bound paused status marks pause. Pause releases
+the relay worker with an aborted SDK state, not successful completion. Failed and
+paused receipts reopen only on a strictly newer Pro attempt timestamp, using the
+same stable SwanLab run ID. This exception does not change L20 receipt handling.

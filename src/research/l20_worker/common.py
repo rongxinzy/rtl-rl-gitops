@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT=Path(os.environ.get('L20_WORK_ROOT','/mnt/data/rtl-l20-training/worker'))
 LOCK=threading.RLock()
 REVISION='1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0'
+PROFILE=re.compile(r'^[a-z][a-z0-9-]{0,63}$')
 HEX=re.compile(r'^[0-9a-f]{64}$');ID=re.compile(r'^l20-[0-9a-f]{24}$')
 def sha(value):return hashlib.sha256(value.encode() if isinstance(value,str) else value).hexdigest()
 def canonical(value):return json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False)
@@ -14,7 +15,8 @@ def atomic(path,value):
 def config():return json.loads((ROOT/'config.json').read_text())
 def validate(body):
  required={'dataset_id','freeze_id','data_sha256','prompts_sha256','data','prompts','max_steps','knowledge_prompts','knowledge_prompts_sha256','knowledge_freeze_id'}
- if not isinstance(body,dict) or set(body)!=required:raise ValueError('fixed job fields required')
+ if not isinstance(body,dict) or not required<=set(body) or set(body)-required-{'profile_id'}:raise ValueError('fixed job fields required')
+ if 'profile_id' in body and (not isinstance(body['profile_id'],str) or not PROFILE.fullmatch(body['profile_id'])):raise ValueError('invalid training profile')
  for name in ('dataset_id','freeze_id','data_sha256','prompts_sha256','knowledge_prompts_sha256','knowledge_freeze_id'):
   if not isinstance(body[name],str) or not HEX.fullmatch(body[name]):raise ValueError('invalid artifact identity')
  if type(body['max_steps']) is not int or not 1<=body['max_steps']<=20:raise ValueError('step budget')
@@ -33,8 +35,20 @@ def validate(body):
  if {x['task_id'] for x in rows}&{x['task_id'] for x in quiz}:raise ValueError('knowledge evaluation overlap')
  return body
 
+def training_profile(cfg,profile_id=None):
+ # Only administrators select paths/images in local configuration. Clients send an ID.
+ if profile_id is None:return cfg
+ profiles=cfg.get('training_profiles',{})
+ selected=profiles.get(profile_id) if isinstance(profiles,dict) else None
+ if not isinstance(selected,dict) or set(selected)!={'image_id','recipe_path','recipe_sha256'}:raise ValueError('unknown or invalid training profile')
+ if not isinstance(selected['image_id'],str) or not re.fullmatch(r'sha256:[0-9a-f]{64}',selected['image_id']):raise ValueError('invalid profile image')
+ source=selected['recipe_path']
+ if not isinstance(source,str) or not Path(source).is_absolute() or not Path(source).is_dir() or Path(source).is_symlink():raise ValueError('invalid profile recipe')
+ if not isinstance(selected['recipe_sha256'],dict) or not selected['recipe_sha256'] or any(not isinstance(k,str) or not re.fullmatch(r'[A-Za-z0-9_]+\.py',k) or k.startswith('test_') or not isinstance(v,str) or not HEX.fullmatch(v) for k,v in selected['recipe_sha256'].items()):raise ValueError('invalid profile recipe hashes')
+ return {**cfg,**selected}
+
 def admit(body):
- validate(body);cfg=config()
+ validate(body);cfg=training_profile(config(),body.get('profile_id'))
  if cfg.get('model_revision')!=REVISION or not re.fullmatch(r'sha256:[0-9a-f]{64}',cfg.get('image_id','')):raise ValueError('untrusted model/image configuration')
  meta={k:v for k,v in body.items() if k not in ('data','prompts','knowledge_prompts')}
  meta.update(image_id=cfg['image_id'],model_revision=cfg['model_revision'])
@@ -42,7 +56,9 @@ def admit(body):
  if mode not in ('legacy','tekton'):raise ValueError('invalid orchestration mode')
  if mode=='tekton':meta['orchestrator']='tekton'
  source=Path(cfg['recipe_path'])
+ if 'profile_id' in body and any(p.is_symlink() or not p.is_file() for p in source.glob('*.py')):raise ValueError('invalid profile recipe files')
  recipe={p.name:sha(p.read_bytes()) for p in source.glob('*.py') if not p.name.startswith('test_')}
+ if 'profile_id' in body and (recipe!=cfg['recipe_sha256'] or any(p.is_symlink() for p in source.glob('*.py'))):raise ValueError('invalid profile recipe files')
  meta['recipe_sha256']=recipe;ident='l20-'+sha(canonical(meta))[:24];folder=ROOT/'jobs'/ident
  if folder.exists():
   if json.loads((folder/'job.json').read_text())!=meta:raise ValueError('job identity conflict')
