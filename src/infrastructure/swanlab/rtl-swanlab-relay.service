@@ -1,0 +1,16 @@
+[Unit]
+Description=Persistent SwanLab scalar relay
+After=docker.service network-online.target rtl-swanlab-collect.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/docker rm -f rtl-swanlab-relay
+ExecStart=/usr/bin/docker run --rm --name rtl-swanlab-relay --init --cpus=0.5 --memory=512m --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs=/tmp:rw,nosuid,size=64m --env-file=/root/rtl-rl/secrets/swanlab.env -e PYTHONDONTWRITEBYTECODE=1 -v /root/rtl-rl/infrastructure/swanlab:/app-relay:ro -v /root/rtl-rl/swanlab-relay:/input:ro -v /root/rtl-rl/swanlab-relay-state:/state --entrypoint python3 rtl-training:20260912-swanlab /app-relay/relay.py
+ExecStop=/usr/bin/docker stop -t 45 rtl-swanlab-relay
+Restart=always
+RestartSec=15
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target
