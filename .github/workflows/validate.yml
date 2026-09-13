@@ -18,5 +18,7 @@ jobs:
         run: python3 scripts/validate.py
       - name: Test scalar relay recovery and validation
         run: python3 -B -m unittest discover -s src/infrastructure/swanlab -p 'test_*.py'
+      - name: Test LLaMA-Factory checkpoint bridge
+        run: python3 -B -m unittest discover -s src/training/llamafactory -p 'test_*.py'
       - name: Scan explicit public files and all reachable history
         run: python3 scripts/scan_public.py --root . --allowlist public-files.json --history

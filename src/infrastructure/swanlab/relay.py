@@ -32,6 +32,9 @@ def presentation(job, device=None):
         'Device fields describe the L20 training host at telemetry observation time, not the relay host. '
         'Logs are structured events; raw data, prompts and secrets are excluded.')
     tags = ['RTL','SystemVerilog','SFT','QLoRA','NF4','Qwen3.8-27B','L20','single-GPU','bounded-experiment']
+    if meta.get('training_backend') == 'LLaMA-Factory':
+        tags.append('LLaMA-Factory')
+        desc += ' Training backend: LLaMA-Factory; source commit is recorded in Config.'
     if meta.get('orchestrator') == 'tekton': tags.append('Tekton')
     return config, desc, tags
 

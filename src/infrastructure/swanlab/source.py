@@ -53,6 +53,17 @@ def token(value, pattern=r'[A-Za-z0-9_.-]{1,160}'):
 
 def metadata(folder, identity):
     result = {'model_repo': 'Qwen/Qwen3.8-27B'}
+    if identity.get('backend') == 'llamafactory':
+        result['training_backend'] = 'LLaMA-Factory'
+        if token(identity.get('llamafactory_commit'), r'[a-f0-9]{40}'):
+            result['llamafactory_commit'] = identity['llamafactory_commit']
+        cfg = identity.get('training_config', {})
+        if isinstance(cfg, dict):
+            result['backend_config'] = {k: cfg[k] for k in
+                ('template', 'optim', 'lr_scheduler_type', 'per_device_train_batch_size',
+                 'gradient_accumulation_steps', 'weight_decay', 'max_grad_norm', 'save_steps',
+                 'bf16', 'gradient_checkpointing', 'train_on_prompt', 'mask_history')
+                if k in cfg and type(cfg[k]) in (str, int, float, bool)}
     for key in ('max_length', 'rank', 'seed'):
         value = identity.get(key)
         if type(value) is int and 0 <= value <= 10000000:

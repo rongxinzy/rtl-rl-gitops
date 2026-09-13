@@ -118,5 +118,13 @@
   "src/training/l20/provenance.py",
   "src/training/l20/state.py",
   "src/training/l20/train.py",
-  "src/training/l20/verify_reload.py"
+  "src/training/l20/verify_reload.py",
+  "src/training/llamafactory/Dockerfile",
+  "src/training/llamafactory/README.md",
+  "src/training/llamafactory/build_recipe.py",
+  "src/training/llamafactory/check_processor.py",
+  "src/training/llamafactory/requirements-runtime.txt",
+  "src/training/llamafactory/state.py",
+  "src/training/llamafactory/test_bridge.py",
+  "src/training/llamafactory/train.py"
 ]
