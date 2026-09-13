@@ -45,6 +45,9 @@ def main():
             return
         print('Configured job already complete; awaiting a new reviewed job.',flush=True)
         return
+    if cfg.get('backend')=='llamafactory':
+        import llamafactory_runner
+        raise SystemExit(llamafactory_runner.run(ROOT,cfg,deadline))
     data=ROOT/cfg['data']
     if hashlib.sha256(data.read_bytes()).hexdigest()!=cfg['data_sha256']:
         raise ValueError('Pinned data hash mismatch')

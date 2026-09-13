@@ -59,6 +59,7 @@ def admit(executor,params):
  from research.knowledge.evaluation import freeze,prompts as knowledge_prompts
  knowledge=freeze();quiz=''.join(json.dumps(x,ensure_ascii=False)+'\n' for x in knowledge_prompts(knowledge))
  body.update(knowledge_freeze_id=knowledge['freeze_id'],knowledge_prompts=quiz,knowledge_prompts_sha256=hashlib.sha256(quiz.encode()).hexdigest())
+ if 'profile_id' in params:body['profile_id']=params['profile_id']
  result=call(executor,'/jobs',body)
  if not JOB_ID.fullmatch(result.get('job_id','')):raise ValueError('invalid worker job identity')
  out=executor.root/'research/l20_artifacts'/result['job_id'];out.mkdir(parents=True,exist_ok=True)

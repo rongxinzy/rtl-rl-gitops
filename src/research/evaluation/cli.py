@@ -23,8 +23,22 @@ def judge_all(bundle,generations,revision,output,mode,metadata=None):
   if key in (metadata or {}):result[key]=metadata[key]
  path=publish(output,result);return {'status':'complete','result_path':path,'evaluation_id':sha(pathlib.Path(path).read_bytes()),'freeze_id':bundle['freeze_id'],'counts':counts,'scope':result['scope']}
 
+def evaluation_image(a, metadata=None):
+ # Only an immutable local image ID may override the legacy baseline runtime.
+ requested=getattr(a,'runtime_image_id',None)
+ pinned=(metadata or {}).get('training_image_id')
+ for value in (requested,pinned):
+  if value is not None and (not isinstance(value,str) or not re.fullmatch(r'sha256:[0-9a-f]{64}',value)):raise ValueError('immutable evaluation image required')
+ if requested and pinned and requested!=pinned:raise ValueError('evaluation image conflicts with job pin')
+ target=pinned or requested or 'rtl-training:20260912-swanlab'
+ actual=subprocess.check_output(['docker','image','inspect',target,'--format','{{.Id}}'],text=True).strip()
+ if not re.fullmatch(r'sha256:[0-9a-f]{64}',actual) or ((pinned or requested) and actual!=target):raise ValueError('evaluation image identity mismatch')
+ return actual
+
 def local_baseline(a,bundle,adapter=None,metadata=None):
- deadline=time.monotonic()+(1500 if adapter else 1800)
+ remaining=None if getattr(a,'deadline',None) is None else a.deadline-time.time()
+ if remaining is not None and remaining<1800:raise ValueError('less than 30 minutes before controller deadline')
+ deadline=time.monotonic()+min(1500 if adapter else 1800,remaining if remaining is not None else 1800)
  now=datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
  if not (now.hour>=22 or (now.hour*60+now.minute)<385):raise ValueError('GPU evaluation requires a start in the 22:00–06:25 Beijing window')
  # Fixed GPU and resource limits; callers cannot inject Docker options or model paths.
@@ -42,9 +56,9 @@ def local_baseline(a,bundle,adapter=None,metadata=None):
  run_dir=root/'research/evaluation/artifacts/runs'/(('qwen-candidate-' if adapter else 'qwen-base-')+str(time.time_ns()));run_dir.mkdir(parents=True)
  inp=run_dir/'input';out=run_dir/'output';inp.mkdir();out.mkdir()
  (inp/'prompts.jsonl').write_text(''.join(json.dumps(t)+'\n' for t in public_prompts(bundle)))
- image_id=subprocess.check_output(['docker','image','inspect','rtl-training:20260912-swanlab','--format','{{.Id}}'],text=True).strip()
+ image_id=evaluation_image(a,metadata)
  name='rtl-eval-'+str(time.time_ns());script=pathlib.Path(__file__).with_name('gpu_candidate.py' if adapter else 'gpu_generate.py')
- cmd=['docker','run','--rm','--name',name,'--network','none','--gpus','device=1','--cpus','8','--memory','20g','--shm-size','2g','--env','HF_HUB_OFFLINE=1','--env','TRANSFORMERS_OFFLINE=1','--mount',f'type=bind,src={model},dst=/model,readonly','--mount',f'type=bind,src={inp},dst=/input,readonly','--mount',f'type=bind,src={out},dst=/output','--mount',f'type=bind,src={script},dst=/eval.py,readonly',image_id,'/eval.py']
+ cmd=['docker','run','--rm','--entrypoint','python3','--name',name,'--network','none','--gpus','device=1','--cpus','8','--memory','20g','--shm-size','2g','--env','HF_HUB_OFFLINE=1','--env','TRANSFORMERS_OFFLINE=1','--mount',f'type=bind,src={model},dst=/model,readonly','--mount',f'type=bind,src={inp},dst=/input,readonly','--mount',f'type=bind,src={out},dst=/output','--mount',f'type=bind,src={script},dst=/eval.py,readonly',image_id,'/eval.py']
  if adapter:cmd[-2:-2]=['--mount',f'type=bind,src={adapter},dst=/adapter,readonly']
  try:
   with (run_dir/'worker.log').open('w') as log:process=subprocess.run(cmd,stdout=log,stderr=subprocess.STDOUT,timeout=max(1,deadline-time.monotonic()-360))
@@ -96,7 +110,7 @@ def execute(a):
  return judge_all(bundle,rows,a.model_revision,art/'runs'/('endpoint-'+str(time.time_ns())+'.json'),'endpoint_baseline_asserted_revision')
 
 def main():
- p=argparse.ArgumentParser();p.add_argument('action',choices=['freeze','status','reference-check','baseline-local','baseline-endpoint','check-training','candidate-local']);p.add_argument('--root',default='/root/rtl-rl');p.add_argument('--freeze-file');p.add_argument('--training',action='append');p.add_argument('--job-id');p.add_argument('--deadline',type=float);p.add_argument('--endpoint');p.add_argument('--model');p.add_argument('--model-revision');a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('action',choices=['freeze','status','reference-check','baseline-local','baseline-endpoint','check-training','candidate-local']);p.add_argument('--root',default='/root/rtl-rl');p.add_argument('--freeze-file');p.add_argument('--training',action='append');p.add_argument('--job-id');p.add_argument('--deadline',type=float);p.add_argument('--endpoint');p.add_argument('--model');p.add_argument('--model-revision');p.add_argument('--runtime-image-id',help='Immutable local sha256 image ID for same-runtime baseline/candidate evaluation');a=p.parse_args()
  try:
   if a.action in ['baseline-local','candidate-local'] and os.environ.get('RTL_EXECUTOR_LOCK_HELD')!='1':
    with open(pathlib.Path(a.root)/'research/executor/state/executor.lock','a') as lock:
