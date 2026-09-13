@@ -47,6 +47,7 @@
   "src/infrastructure/router/router.py",
   "src/infrastructure/swanlab/README.md",
   "src/infrastructure/swanlab/collect.py",
+  "src/infrastructure/swanlab/enrich_existing.py",
   "src/infrastructure/swanlab/relay.py",
   "src/infrastructure/swanlab/rtl-swanlab-collect.service",
   "src/infrastructure/swanlab/rtl-swanlab-collect.timer",
