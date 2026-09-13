@@ -44058,7 +44058,8 @@
           "app.kubernetes.io/name": "argocd-application-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-application-controller"
+        "name": "argocd-application-controller",
+        "namespace": "argocd"
       }
     },
     {
@@ -44070,7 +44071,8 @@
           "app.kubernetes.io/name": "argocd-applicationset-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-applicationset-controller"
+        "name": "argocd-applicationset-controller",
+        "namespace": "argocd"
       }
     },
     {
@@ -44082,7 +44084,8 @@
           "app.kubernetes.io/name": "argocd-dex-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-dex-server"
+        "name": "argocd-dex-server",
+        "namespace": "argocd"
       }
     },
     {
@@ -44094,7 +44097,8 @@
           "app.kubernetes.io/name": "argocd-notifications-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-notifications-controller"
+        "name": "argocd-notifications-controller",
+        "namespace": "argocd"
       }
     },
     {
@@ -44106,7 +44110,8 @@
           "app.kubernetes.io/name": "argocd-redis",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-redis"
+        "name": "argocd-redis",
+        "namespace": "argocd"
       }
     },
     {
@@ -44118,7 +44123,8 @@
           "app.kubernetes.io/name": "argocd-repo-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-repo-server"
+        "name": "argocd-repo-server",
+        "namespace": "argocd"
       }
     },
     {
@@ -44130,7 +44136,8 @@
           "app.kubernetes.io/name": "argocd-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-server"
+        "name": "argocd-server",
+        "namespace": "argocd"
       }
     },
     {
@@ -44142,7 +44149,8 @@
           "app.kubernetes.io/name": "argocd-application-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-application-controller"
+        "name": "argocd-application-controller",
+        "namespace": "argocd"
       },
       "rules": [
         {
@@ -44214,7 +44222,8 @@
           "app.kubernetes.io/name": "argocd-applicationset-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-applicationset-controller"
+        "name": "argocd-applicationset-controller",
+        "namespace": "argocd"
       },
       "rules": [
         {
@@ -44329,7 +44338,8 @@
           "app.kubernetes.io/name": "argocd-dex-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-dex-server"
+        "name": "argocd-dex-server",
+        "namespace": "argocd"
       },
       "rules": [
         {
@@ -44357,7 +44367,8 @@
           "app.kubernetes.io/name": "argocd-notifications-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-notifications-controller"
+        "name": "argocd-notifications-controller",
+        "namespace": "argocd"
       },
       "rules": [
         {
@@ -44428,7 +44439,8 @@
           "app.kubernetes.io/name": "argocd-redis",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-redis"
+        "name": "argocd-redis",
+        "namespace": "argocd"
       },
       "rules": [
         {
@@ -44467,7 +44479,8 @@
           "app.kubernetes.io/name": "argocd-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-server"
+        "name": "argocd-server",
+        "namespace": "argocd"
       },
       "rules": [
         {
@@ -44764,7 +44777,8 @@
           "app.kubernetes.io/name": "argocd-application-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-application-controller"
+        "name": "argocd-application-controller",
+        "namespace": "argocd"
       },
       "roleRef": {
         "apiGroup": "rbac.authorization.k8s.io",
@@ -44787,7 +44801,8 @@
           "app.kubernetes.io/name": "argocd-applicationset-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-applicationset-controller"
+        "name": "argocd-applicationset-controller",
+        "namespace": "argocd"
       },
       "roleRef": {
         "apiGroup": "rbac.authorization.k8s.io",
@@ -44810,7 +44825,8 @@
           "app.kubernetes.io/name": "argocd-dex-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-dex-server"
+        "name": "argocd-dex-server",
+        "namespace": "argocd"
       },
       "roleRef": {
         "apiGroup": "rbac.authorization.k8s.io",
@@ -44833,7 +44849,8 @@
           "app.kubernetes.io/name": "argocd-notifications-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-notifications-controller"
+        "name": "argocd-notifications-controller",
+        "namespace": "argocd"
       },
       "roleRef": {
         "apiGroup": "rbac.authorization.k8s.io",
@@ -44856,7 +44873,8 @@
           "app.kubernetes.io/name": "argocd-redis",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-redis"
+        "name": "argocd-redis",
+        "namespace": "argocd"
       },
       "roleRef": {
         "apiGroup": "rbac.authorization.k8s.io",
@@ -44879,7 +44897,8 @@
           "app.kubernetes.io/name": "argocd-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-server"
+        "name": "argocd-server",
+        "namespace": "argocd"
       },
       "roleRef": {
         "apiGroup": "rbac.authorization.k8s.io",
@@ -44985,7 +45004,8 @@
           "app.kubernetes.io/name": "argocd-cm",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-cm"
+        "name": "argocd-cm",
+        "namespace": "argocd"
       }
     },
     {
@@ -44996,7 +45016,8 @@
           "app.kubernetes.io/name": "argocd-cmd-params-cm",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-cmd-params-cm"
+        "name": "argocd-cmd-params-cm",
+        "namespace": "argocd"
       }
     },
     {
@@ -45007,7 +45028,8 @@
           "app.kubernetes.io/name": "argocd-gpg-keys-cm",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-gpg-keys-cm"
+        "name": "argocd-gpg-keys-cm",
+        "namespace": "argocd"
       }
     },
     {
@@ -45019,7 +45041,8 @@
           "app.kubernetes.io/name": "argocd-notifications-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-notifications-cm"
+        "name": "argocd-notifications-cm",
+        "namespace": "argocd"
       }
     },
     {
@@ -45030,7 +45053,8 @@
           "app.kubernetes.io/name": "argocd-rbac-cm",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-rbac-cm"
+        "name": "argocd-rbac-cm",
+        "namespace": "argocd"
       }
     },
     {
@@ -45044,7 +45068,8 @@
           "app.kubernetes.io/name": "argocd-ssh-known-hosts-cm",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-ssh-known-hosts-cm"
+        "name": "argocd-ssh-known-hosts-cm",
+        "namespace": "argocd"
       }
     },
     {
@@ -45055,7 +45080,8 @@
           "app.kubernetes.io/name": "argocd-tls-certs-cm",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-tls-certs-cm"
+        "name": "argocd-tls-certs-cm",
+        "namespace": "argocd"
       }
     },
     {
@@ -45067,7 +45093,8 @@
           "app.kubernetes.io/name": "argocd-applicationset-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-applicationset-controller"
+        "name": "argocd-applicationset-controller",
+        "namespace": "argocd"
       },
       "spec": {
         "ports": [
@@ -45099,7 +45126,8 @@
           "app.kubernetes.io/name": "argocd-dex-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-dex-server"
+        "name": "argocd-dex-server",
+        "namespace": "argocd"
       },
       "spec": {
         "ports": [
@@ -45138,7 +45166,8 @@
           "app.kubernetes.io/name": "argocd-metrics",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-metrics"
+        "name": "argocd-metrics",
+        "namespace": "argocd"
       },
       "spec": {
         "ports": [
@@ -45164,7 +45193,8 @@
           "app.kubernetes.io/name": "argocd-notifications-controller-metrics",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-notifications-controller-metrics"
+        "name": "argocd-notifications-controller-metrics",
+        "namespace": "argocd"
       },
       "spec": {
         "ports": [
@@ -45190,7 +45220,8 @@
           "app.kubernetes.io/name": "argocd-redis",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-redis"
+        "name": "argocd-redis",
+        "namespace": "argocd"
       },
       "spec": {
         "ports": [
@@ -45215,7 +45246,8 @@
           "app.kubernetes.io/name": "argocd-repo-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-repo-server"
+        "name": "argocd-repo-server",
+        "namespace": "argocd"
       },
       "spec": {
         "ports": [
@@ -45247,7 +45279,8 @@
           "app.kubernetes.io/name": "argocd-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-server"
+        "name": "argocd-server",
+        "namespace": "argocd"
       },
       "spec": {
         "ports": [
@@ -45279,7 +45312,8 @@
           "app.kubernetes.io/name": "argocd-server-metrics",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-server-metrics"
+        "name": "argocd-server-metrics",
+        "namespace": "argocd"
       },
       "spec": {
         "ports": [
@@ -45305,7 +45339,8 @@
           "app.kubernetes.io/name": "argocd-applicationset-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-applicationset-controller"
+        "name": "argocd-applicationset-controller",
+        "namespace": "argocd"
       },
       "spec": {
         "selector": {
@@ -45877,7 +45912,8 @@
           "app.kubernetes.io/name": "argocd-dex-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-dex-server"
+        "name": "argocd-dex-server",
+        "namespace": "argocd"
       },
       "spec": {
         "selector": {
@@ -46095,7 +46131,8 @@
           "app.kubernetes.io/name": "argocd-notifications-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-notifications-controller"
+        "name": "argocd-notifications-controller",
+        "namespace": "argocd"
       },
       "spec": {
         "selector": {
@@ -46327,7 +46364,8 @@
           "app.kubernetes.io/name": "argocd-redis",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-redis"
+        "name": "argocd-redis",
+        "namespace": "argocd"
       },
       "spec": {
         "selector": {
@@ -46461,7 +46499,8 @@
         "name": "argocd-repo-server",
         "annotations": {
           "rtl.ai/github-resolution-note": "2026-09-13: official GitHub meta.web endpoint; default DNS 20.205.243.166 TCP443 unreachable; TLS verification retained. Revalidate/remove when DNS route recovers."
-        }
+        },
+        "namespace": "argocd"
       },
       "spec": {
         "selector": {
@@ -47174,7 +47213,8 @@
           "app.kubernetes.io/name": "argocd-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-server"
+        "name": "argocd-server",
+        "namespace": "argocd"
       },
       "spec": {
         "selector": {
@@ -48021,7 +48061,8 @@
           "app.kubernetes.io/name": "argocd-application-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-application-controller"
+        "name": "argocd-application-controller",
+        "namespace": "argocd"
       },
       "spec": {
         "replicas": 1,
@@ -48766,7 +48807,8 @@
           "app.kubernetes.io/name": "argocd-application-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-application-controller-network-policy"
+        "name": "argocd-application-controller-network-policy",
+        "namespace": "argocd"
       },
       "spec": {
         "ingress": [
@@ -48802,7 +48844,8 @@
           "app.kubernetes.io/name": "argocd-applicationset-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-applicationset-controller-network-policy"
+        "name": "argocd-applicationset-controller-network-policy",
+        "namespace": "argocd"
       },
       "spec": {
         "ingress": [
@@ -48843,7 +48886,8 @@
           "app.kubernetes.io/name": "argocd-dex-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-dex-server-network-policy"
+        "name": "argocd-dex-server-network-policy",
+        "namespace": "argocd"
       },
       "spec": {
         "ingress": [
@@ -48901,7 +48945,8 @@
           "app.kubernetes.io/name": "argocd-notifications-controller",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-notifications-controller-network-policy"
+        "name": "argocd-notifications-controller-network-policy",
+        "namespace": "argocd"
       },
       "spec": {
         "ingress": [
@@ -48938,7 +48983,8 @@
           "app.kubernetes.io/name": "argocd-redis",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-redis-network-policy"
+        "name": "argocd-redis-network-policy",
+        "namespace": "argocd"
       },
       "spec": {
         "ingress": [
@@ -48993,7 +49039,8 @@
           "app.kubernetes.io/name": "argocd-repo-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-repo-server-network-policy"
+        "name": "argocd-repo-server-network-policy",
+        "namespace": "argocd"
       },
       "spec": {
         "ingress": [
@@ -49067,7 +49114,8 @@
           "app.kubernetes.io/name": "argocd-server",
           "app.kubernetes.io/part-of": "argocd"
         },
-        "name": "argocd-server-network-policy"
+        "name": "argocd-server-network-policy",
+        "namespace": "argocd"
       },
       "spec": {
         "ingress": [
