@@ -33,7 +33,7 @@ fi
 last=124
 # All addresses were verified in GitHub's official /meta web list on 2026-09-13.
 # Revalidate this list as part of platform maintenance. TLS hostname stays github.com.
-for ip in 20.201.28.151 20.27.177.119 20.205.243.166; do
+for ip in 140.82.112.4 140.82.113.4 20.201.28.151; do
   run_bounded 2 /usr/bin/bash -c 'exec 3<>/dev/tcp/$1/443' -- "$ip" 2>/dev/null || continue
   run_bounded 18 /usr/bin/git -c "http.curloptResolve=github.com:443:$ip" -c http.lowSpeedLimit=1024 -c http.lowSpeedTime=10 "$@"
   last=$?
