@@ -13,9 +13,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from traffic_policy import TrafficPolicy
 
 NS=os.getenv('NAMESPACE','rtl-system')
 SECRET=Path(os.getenv('ROUTER_KEY_FILE','/secrets/key')).read_text().strip() if os.getenv('ROUTER_TEST')!='1' else 'test'
+BACKGROUND_KEY_PATH=Path(os.getenv('ROUTER_BACKGROUND_KEY_FILE','/secrets/background-key'))
+BACKGROUND_KEY=BACKGROUND_KEY_PATH.read_text().strip() if BACKGROUND_KEY_PATH.exists() and os.getenv('ROUTER_TEST')!='1' else None
+POLICY=TrafficPolicy(SECRET,BACKGROUND_KEY,night_start=os.getenv('BACKGROUND_NIGHT_START','22:30'),night_end=os.getenv('BACKGROUND_NIGHT_END','07:30'),timezone=os.getenv('SCHEDULE_TIMEZONE','Asia/Shanghai'),clock=lambda:time.time())
 BACKENDS={'primary':os.getenv('PRIMARY_URL','http://glm-primary:8000'), 'backup':os.getenv('BACKUP_URL','http://glm-backup:8000')}
 API='https://'+os.getenv('KUBERNETES_SERVICE_HOST','kubernetes.default.svc')+':'+os.getenv('KUBERNETES_SERVICE_PORT','443')
 LOCK=threading.Lock()
@@ -64,24 +68,24 @@ def healthy(backend):
     except Exception:return False
 
 
-def begin_request(business):
+def begin_request(business,identity="protected"):
     global LAST_BUSINESS_AT
     with LOCK:
         backend=CACHE['backend']
         if backend and backend!='maintenance':
             INFLIGHT[backend]+=1
-            if business:LAST_BUSINESS_AT=time.time()
+            if business and identity=="protected":LAST_BUSINESS_AT=time.time()
         return backend
 
-def end_request(backend,business):
+def end_request(backend,business,identity="protected"):
     global LAST_BUSINESS_AT
     with LOCK:
         INFLIGHT[backend]-=1
-        if business:LAST_BUSINESS_AT=time.time()
+        if business and identity=="protected":LAST_BUSINESS_AT=time.time()
 
 
 def local_status():
-    with LOCK:return {**CACHE,'age':time.monotonic()-CACHE['updated'],'primary_inflight':INFLIGHT['primary'],'backup_inflight':INFLIGHT['backup'],'last_business_at':LAST_BUSINESS_AT}
+    with LOCK:return {**CACHE,'age':time.monotonic()-CACHE['updated'],'primary_inflight':INFLIGHT['primary'],'backup_inflight':INFLIGHT['backup'],'last_business_at':LAST_BUSINESS_AT,**POLICY.snapshot()}
 
 
 def cluster_status():
@@ -100,6 +104,11 @@ def cluster_status():
             'backup_inflight':sum(x['backup_inflight'] for x in replicas),
             'last_business_at':max((x.get('last_business_at',time.time()) for x in replicas),default=time.time()),
             'business_idle_seconds':max(0,time.time()-max((x.get('last_business_at',time.time()) for x in replicas),default=time.time())),
+            'protected_inflight':sum(x.get('protected_inflight',x['primary_inflight']+x['backup_inflight']) for x in replicas),
+            'background_inflight':sum(x.get('background_inflight',0) for x in replicas),
+            'last_protected_at':max((x.get('last_protected_at',x.get('last_business_at',time.time())) for x in replicas),default=time.time()),
+            'last_background_at':max((x.get('last_background_at',0) for x in replicas),default=0),
+            'background_rejected_total':sum(x.get('background_rejected_total',0) for x in replicas),
             'replicas':len(replicas),'healthy_backends':{b:healthy(b) for b in BACKENDS}}
 
 
@@ -110,7 +119,7 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self,*args):pass  # Never log auth headers, prompts, responses or query strings.
     def reply(self,code,value):
         data=json.dumps(value).encode();self.send_response(code);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
-    def authorized(self):return hmac.compare_digest(self.headers.get('Authorization',''),'Bearer '+SECRET)
+    def authorized(self):return POLICY.authenticate(self.headers.get('Authorization',''))=='protected'
     def body(self):
         if self.headers.get('Transfer-Encoding'):raise ValueError('chunked request bodies not supported')
         n=int(self.headers.get('Content-Length','0'))
@@ -126,7 +135,10 @@ class Handler(BaseHTTPRequestHandler):
         if self.path=='/health':
             ready=bool(CACHE['backend']) and not TERMINATING
             self.reply(200 if ready else 503,{'ready':ready});return
-        if not self.authorized():self.reply(401,{'error':'unauthorized'});return
+        identity=POLICY.authenticate(self.headers.get('Authorization',''))
+        if identity is None:self.close_connection=True;self.reply(401,{'error':'unauthorized'});return
+        if identity=='background' and not self.path.startswith('/v1/'):
+            self.close_connection=True;self.reply(403,{'error':'workload credential has no control access'});return
         try:
             if self.path=='/admin/local-status' and self.command=='GET':self.reply(200,local_status());return
             if self.path=='/admin/status' and self.command=='GET':self.reply(200,cluster_status());return
@@ -149,10 +161,13 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError,KeyError):self.reply(400,{'error':'invalid request'});return
         except Exception:self.reply(503,{'error':'control state unavailable'});return
         if TERMINATING:self.reply(503,{'error':'router draining'});return
-        business=self.command=='POST' and self.path.split('?',1)[0].startswith('/v1/')
-        backend=begin_request(business)
+        business=POLICY.is_business(self.command,self.path)
+        if POLICY.admit(identity,self.command,self.path)==503:
+            self.reply(503,{'error':{'type':'background_paused','message':'background inference paused for scheduled training; use fallback'}});return
+        backend=begin_request(business,identity)
         if backend=='maintenance':self.reply(503,{'error':'scheduled training maintenance'});return
         if not backend:self.reply(503,{'error':'routing not initialized'});return
+        ticket=POLICY.begin(identity,self.command,self.path)
         sent=False;up=None
         try:
             url=urllib.parse.urlsplit(BACKENDS[backend]);cls=http.client.HTTPSConnection if url.scheme=='https' else http.client.HTTPConnection
@@ -184,7 +199,8 @@ class Handler(BaseHTTPRequestHandler):
             # Never replay a partially streamed response or tool call on another backend.
         finally:
             if up:up.close()
-            end_request(backend,business)
+            end_request(backend,business,identity)
+            POLICY.end(ticket)
 
 def terminate(signum, frame):
     global TERMINATING

@@ -1,0 +1,421 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-brain"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "rtl-ops-agent-state",
+        "namespace": "rtl-brain"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "1Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-system"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "deployments",
+            "replicasets"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "rtl.rongxin.ai"
+          ],
+          "resources": [
+            "inferenceschedules"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-system"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-ops-agent"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-brain"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "deployments",
+            "replicasets"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "batch"
+          ],
+          "resources": [
+            "cronjobs"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-brain"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-ops-agent"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "argocd"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "argoproj.io"
+          ],
+          "resources": [
+            "applications"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "argocd"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-ops-agent"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-pipelines"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "tekton.dev"
+          ],
+          "resources": [
+            "pipelineruns"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-pipelines"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-ops-agent"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "rtl-ops-agent-nodes"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "nodes"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "ClusterRoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent-nodes"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "rtl-ops-agent-nodes"
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "CronJob",
+      "metadata": {
+        "name": "rtl-ops-agent",
+        "namespace": "rtl-brain"
+      },
+      "spec": {
+        "schedule": "* * * * *",
+        "concurrencyPolicy": "Forbid",
+        "successfulJobsHistoryLimit": 2,
+        "failedJobsHistoryLimit": 3,
+        "jobTemplate": {
+          "spec": {
+            "backoffLimit": 0,
+            "activeDeadlineSeconds": 280,
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "rtl-ops-agent"
+                }
+              },
+              "spec": {
+                "serviceAccountName": "rtl-ops-agent",
+                "restartPolicy": "Never",
+                "nodeSelector": {
+                  "kubernetes.io/hostname": "rtl-control"
+                },
+                "securityContext": {
+                  "runAsNonRoot": true,
+                  "runAsUser": 65532,
+                  "runAsGroup": 65532,
+                  "fsGroup": 65532
+                },
+                "containers": [
+                  {
+                    "name": "agent",
+                    "image": "rtl-ops-agent:20260914-v1",
+                    "imagePullPolicy": "IfNotPresent",
+                    "env": [
+                      {
+                        "name": "DRY_RUN",
+                        "value": "true"
+                      },
+                      {
+                        "name": "RECOVERY_DEPLOYMENTS",
+                        "value": "[\"rtl-system/glm-router\", \"rtl-system/rtl-operator\", \"rtl-brain/rtl-ops-recovery-canary\"]"
+                      },
+                      {
+                        "name": "BACKGROUND_ROUTER_URL",
+                        "value": "http://glm-router.rtl-system.svc:8000"
+                      },
+                      {
+                        "name": "BACKGROUND_ROUTER_KEY_FILE",
+                        "value": "/secrets/router-background-key"
+                      },
+                      {
+                        "name": "PLAN_INTERVAL_SECONDS",
+                        "value": "900"
+                      }
+                    ],
+                    "resources": {
+                      "requests": {
+                        "cpu": "20m",
+                        "memory": "64Mi"
+                      },
+                      "limits": {
+                        "cpu": "250m",
+                        "memory": "256Mi"
+                      }
+                    },
+                    "securityContext": {
+                      "allowPrivilegeEscalation": false,
+                      "readOnlyRootFilesystem": true,
+                      "capabilities": {
+                        "drop": [
+                          "ALL"
+                        ]
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "state",
+                        "mountPath": "/state"
+                      },
+                      {
+                        "name": "models",
+                        "mountPath": "/secrets",
+                        "readOnly": true
+                      }
+                    ]
+                  }
+                ],
+                "volumes": [
+                  {
+                    "name": "state",
+                    "persistentVolumeClaim": {
+                      "claimName": "rtl-ops-agent-state"
+                    }
+                  },
+                  {
+                    "name": "models",
+                    "secret": {
+                      "secretName": "rtl-brain-secrets",
+                      "items": [
+                        {
+                          "key": "primary-key",
+                          "path": "primary-key"
+                        },
+                        {
+                          "key": "backup-key",
+                          "path": "backup-key"
+                        },
+                        {
+                          "key": "fallback.json",
+                          "path": "fallback.json"
+                        },
+                        {
+                          "key": "router-background-key",
+                          "path": "router-background-key"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

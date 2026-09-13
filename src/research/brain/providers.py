@@ -31,7 +31,7 @@ class Models:
         self.state=state; self.root=Path(secret_dir)
     def plan(self, system, snapshot):
         fallback=json.loads((self.root/'fallback.json').read_text())
-        choices=[('primary',os.environ.get('PRIMARY_URL','http://glm-primary.rtl-system.svc:8000')),
+        choices=[('primary',os.environ.get('BACKGROUND_ROUTER_URL') or os.environ.get('PRIMARY_URL','http://glm-primary.rtl-system.svc:8000')),
                  ('backup',os.environ.get('BACKUP_URL','http://glm-backup.rtl-system.svc:8000')),
                  ('fallback',fallback['base_url'])]
         errors=[]
@@ -45,7 +45,8 @@ class Models:
                         {'x-api-key':fallback['token'],'anthropic-version':'2023-06-01'},timeout=100)
                     text=''.join(x.get('text','') for x in response.get('content',[]) if x.get('type')=='text')
                 else:
-                    key=(self.root/(name+'-key')).read_text().strip()
+                    key_path=Path(os.environ.get('BACKGROUND_ROUTER_KEY_FILE',str(self.root/'router-background-key'))) if name=='primary' and os.environ.get('BACKGROUND_ROUTER_URL') else self.root/(name+'-key')
+                    key=key_path.read_text().strip()
                     headers={'Authorization':'Bearer '+key} if key else {}
                     http(url.rstrip('/')+'/health',headers=headers,timeout=3)
                     response=http(url.rstrip('/')+'/v1/chat/completions',{'model':'GLM-5.3-Flash',

@@ -33,5 +33,11 @@ jobs:
         run: |
           python3 -B -m unittest research.executor.test_lf_profile
           python3 -B -m unittest discover -s research/evaluation -p 'test_runtime.py'
+      - name: Test traffic identity and bounded ops recovery
+        working-directory: src
+        run: |
+          python3 -B -m unittest discover -s infrastructure/router -p 'test_*.py'
+          python3 -B -m unittest research.ops_agent.test_agent
+          python3 -B -m unittest discover -s research/brain -p 'test_provider_traffic.py'
       - name: Scan explicit public files and all reachable history
         run: python3 scripts/scan_public.py --root . --allowlist public-files.json --history

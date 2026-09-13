@@ -1,0 +1,88 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-ops-agent-recovery",
+        "namespace": "rtl-system"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods"
+          ],
+          "verbs": [
+            "delete"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent-recovery",
+        "namespace": "rtl-system"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-ops-agent-recovery"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "rtl-ops-agent-recovery",
+        "namespace": "rtl-brain"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods"
+          ],
+          "verbs": [
+            "delete"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "rtl-ops-agent-recovery",
+        "namespace": "rtl-brain"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "rtl-ops-agent",
+          "namespace": "rtl-brain"
+        }
+      ],
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "rtl-ops-agent-recovery"
+      }
+    }
+  ]
+}
