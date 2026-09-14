@@ -1071,7 +1071,7 @@
         "businessIdleSeconds": 300,
         "controlMode": "Active",
         "minStartRemainingSeconds": 3600,
-        "mode": "Auto",
+        "mode": "Inference",
         "model": "GLM-5.3-Flash",
         "primaryURL": "http://glm-primary.rtl-system.svc.cluster.local:8000",
         "readyBy": "08:00",
@@ -1082,7 +1082,7 @@
         "trainingStop": "07:30",
         "jobId": "grpo-night-20260913-v1",
         "forceTrainingAt": "23:30",
-        "rotateL20": true,
+        "rotateL20": false,
         "backupPrepareStart": "22:00"
       }
     }
