@@ -139,3 +139,42 @@ class WorkloadAuthTests(unittest.TestCase):
             r.end_request(backend,True,'background')
             self.assertEqual(r.INFLIGHT['primary'],0)
             self.assertEqual(r.LAST_BUSINESS_AT,123)
+
+class ForcedMaintenanceTests(unittest.TestCase):
+    def test_authenticated_force_gate_and_convergence(self):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        now=datetime(2026,9,14,23,30,tzinfo=ZoneInfo('Asia/Shanghai')).timestamp()
+        p=r.TrafficPolicy('test','fixture-background',force_training_at='23:30',clock=lambda:now)
+        server=r.ThreadingHTTPServer(('127.0.0.1',0),r.Handler)
+        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        def call(payload,key='test'):
+            req=urllib.request.Request('http://127.0.0.1:'+str(server.server_address[1])+'/admin/backend',
+                data=json.dumps(payload).encode(),method='PUT',headers={'Authorization':'Bearer '+key})
+            try:
+                with urllib.request.urlopen(req) as resp:return resp.status
+            except urllib.error.HTTPError as exc:return exc.code
+        try:
+            with patch.object(r,'POLICY',p),patch.object(r,'cluster_status',return_value={
+                'converged':True,'primary_inflight':2,'business_idle_seconds':0}) as status,patch.object(r,'config',
+                return_value={'data':{'backend':'primary','epoch':'old'}}),patch.object(r,'api') as api:
+                self.assertEqual(call({'backend':'maintenance','force':True},'fixture-background'),403)
+                self.assertEqual(call({'backend':'maintenance','force':True},'unknown'),401)
+                self.assertEqual(call({'backend':'maintenance'}),409)
+                self.assertEqual(call({'backend':'maintenance','force':False}),409)
+                for value in ['true',1,None,[],{}]:
+                    self.assertEqual(call({'backend':'maintenance','force':value}),400)
+                self.assertEqual(call({'backend':'primary','force':True}),400)
+                api.assert_not_called()
+                self.assertEqual(call({'backend':'maintenance','force':True}),200)
+                self.assertEqual(api.call_args.args[2]['data']['backend'],'maintenance')
+                api.reset_mock()
+                status.return_value['converged']=False
+                self.assertEqual(call({'backend':'maintenance','force':True}),409)
+                api.assert_not_called()
+                status.return_value['converged']=True
+                with patch.object(p,'force_allowed',return_value=False):
+                    self.assertEqual(call({'backend':'maintenance','force':True}),409)
+                api.assert_not_called()
+        finally:
+            server.shutdown();server.server_close();thread.join()

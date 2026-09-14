@@ -26,6 +26,8 @@ jobs:
       - name: Test trusted training profiles and legacy admission
         working-directory: src
         run: python3 -B -m unittest research.l20_worker.test_worker research.l20_worker.test_phase_control research.l20_worker.test_profiles research.executor.test_l20_branch research.executor.test_executor
+      - name: Test night deadline and forced cutover
+        run: python3 -B -m unittest discover -s src/operator -p 'test_*.py'
       - name: Test pro nighttime LLaMA-Factory runner
         run: python3 -B -m unittest discover -s src/scheduling -p 'test_*.py'
       - name: Test pro admission and evaluation runtime
