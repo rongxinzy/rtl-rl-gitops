@@ -18,6 +18,14 @@ class Tests(unittest.TestCase):
   with patch.dict(os.environ,{},clear=True):return n.start(self.out,'b'*64,meta or self.meta,self.training,step,sdk,self.key,self.proxy)
  def test_resume_uses_same_cloud_identity(self):
   sdk=SDK();r=self.start(sdk);r.finish('paused',1);self.start(sdk,1);self.assertEqual(sdk.calls[0]['id'],sdk.calls[1]['id']);self.assertTrue(all(x['resume']=='allow' for x in sdk.calls))
+ def test_failure_preserves_last_committed_progress(self):
+  sdk=SDK();r=self.start(sdk);r.event('checkpoint',7);r.finish('failed',0)
+  self.assertEqual(json.loads((self.out/'swanlab-native.json').read_text())['step'],7)
+ def test_checkpoint_upload_error_preserves_committed_progress(self):
+  sdk=SDK();r=self.start(sdk)
+  with patch.object(sdk,'log',side_effect=RuntimeError('network unavailable')):
+   with self.assertRaisesRegex(RuntimeError,'event failed'):r.event('checkpoint',7)
+  r.finish('failed',0);self.assertEqual(json.loads((self.out/'swanlab-native.json').read_text())['step'],7)
  def test_credential_never_saved_or_logged(self):
   sdk=SDK();output=io.StringIO()
   with contextlib.redirect_stdout(output):self.start(sdk)
