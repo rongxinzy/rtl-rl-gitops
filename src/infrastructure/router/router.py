@@ -19,7 +19,7 @@ NS=os.getenv('NAMESPACE','rtl-system')
 SECRET=Path(os.getenv('ROUTER_KEY_FILE','/secrets/key')).read_text().strip() if os.getenv('ROUTER_TEST')!='1' else 'test'
 BACKGROUND_KEY_PATH=Path(os.getenv('ROUTER_BACKGROUND_KEY_FILE','/secrets/background-key'))
 BACKGROUND_KEY=BACKGROUND_KEY_PATH.read_text().strip() if BACKGROUND_KEY_PATH.exists() and os.getenv('ROUTER_TEST')!='1' else None
-POLICY=TrafficPolicy(SECRET,BACKGROUND_KEY,night_start=os.getenv('BACKGROUND_NIGHT_START','22:30'),night_end=os.getenv('BACKGROUND_NIGHT_END','07:30'),timezone=os.getenv('SCHEDULE_TIMEZONE','Asia/Shanghai'),clock=lambda:time.time())
+POLICY=TrafficPolicy(SECRET,BACKGROUND_KEY,night_start=os.getenv('BACKGROUND_NIGHT_START','22:30'),night_end=os.getenv('BACKGROUND_NIGHT_END','07:30'),timezone=os.getenv('SCHEDULE_TIMEZONE','Asia/Shanghai'),clock=lambda:time.time(),force_training_at=os.getenv('FORCE_TRAINING_AT') or None)
 BACKENDS={'primary':os.getenv('PRIMARY_URL','http://glm-primary:8000'), 'backup':os.getenv('BACKUP_URL','http://glm-backup:8000')}
 API='https://'+os.getenv('KUBERNETES_SERVICE_HOST','kubernetes.default.svc')+':'+os.getenv('KUBERNETES_SERVICE_PORT','443')
 LOCK=threading.Lock()
@@ -143,11 +143,16 @@ class Handler(BaseHTTPRequestHandler):
             if self.path=='/admin/local-status' and self.command=='GET':self.reply(200,local_status());return
             if self.path=='/admin/status' and self.command=='GET':self.reply(200,cluster_status());return
             if self.path=='/admin/backend' and self.command=='PUT':
-                backend=json.loads(self.body())['backend']
-                if backend not in ROUTES:raise ValueError('invalid backend')
+                payload=json.loads(self.body())
+                backend=payload['backend']
+                force=payload.get('force',False)
+                if type(force) is not bool:raise ValueError('force must be boolean')
+                if backend not in ROUTES or (force and backend!='maintenance'):raise ValueError('invalid backend')
+                if force and not POLICY.force_allowed():
+                    self.reply(409,{'error':'forced maintenance outside configured deadline'});return
                 if backend=='maintenance':
                     status=cluster_status()
-                    if not status['converged'] or status['primary_inflight'] or status['business_idle_seconds']<300:
+                    if not status['converged'] or (not force and (status['primary_inflight'] or status['business_idle_seconds']<300)):
                         self.reply(409,{'error':'business not idle'});return
                 elif not healthy(backend):self.reply(409,{'error':'backend not healthy'});return
                 cm=config()

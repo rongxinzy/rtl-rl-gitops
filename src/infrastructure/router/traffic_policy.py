@@ -16,7 +16,7 @@ class TrafficPolicy:
     """
 
     def __init__(self, protected_key, background_key=None, *, night_start='22:30',
-                 night_end='07:30', timezone='Asia/Shanghai', clock=time.time):
+                 night_end='07:30', timezone='Asia/Shanghai', clock=time.time, force_training_at=None):
         if not isinstance(protected_key, str) or not protected_key:
             raise ValueError('protected credential required')
         if background_key is not None and (not isinstance(background_key, str) or not background_key):
@@ -28,6 +28,11 @@ class TrafficPolicy:
         self.window_start, self.window_end = self._minutes(night_start), self._minutes(night_end)
         if self.window_start == self.window_end:
             raise ValueError('training window must have distinct bounds')
+        self.force_start = self._minutes(force_training_at) if force_training_at is not None else None
+        if self.force_start is not None:
+            duration = (self.window_end - self.window_start) % 1440
+            if (self.force_start - self.window_start) % 1440 >= duration:
+                raise ValueError('force deadline must be within training window')
         self.zone = ZoneInfo(timezone)
         self.clock = clock
         self.lock = threading.Lock()
@@ -72,6 +77,15 @@ class TrafficPolicy:
         if self.window_start < self.window_end:
             return self.window_start <= minute < self.window_end
         return minute >= self.window_start or minute < self.window_end
+
+    def force_allowed(self, now=None):
+        """Fail closed unless a configured deadline has passed in this night window."""
+        if self.force_start is None or not self.in_night_window(now):
+            return False
+        local = datetime.fromtimestamp(self.clock() if now is None else now, self.zone)
+        minute = local.hour * 60 + local.minute
+        return ((minute - self.window_start) % 1440 >=
+                (self.force_start - self.window_start) % 1440)
 
     def admit(self, identity, method, path, *, now=None):
         """Return HTTP status: 200 allowed, 401 unauthenticated, 503 background paused.

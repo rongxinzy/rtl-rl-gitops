@@ -79,3 +79,20 @@ class TrafficPolicyTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class ForcedDeadlineTests(unittest.TestCase):
+    def test_disabled_by_default(self):
+        self.assertFalse(TrafficPolicy('fixture').force_allowed(stamp('2026-09-14T23:45:00')))
+
+    def test_cross_midnight_force_boundaries(self):
+        p=TrafficPolicy('fixture',force_training_at='23:30')
+        for clock,expected in [('22:29:59',False),('22:30:00',False),('23:29:59',False),
+                               ('23:30:00',True),('23:59:59',True),('00:00:00',True),
+                               ('07:29:59',True),('07:30:00',False),('12:00:00',False)]:
+            with self.subTest(clock=clock):
+                self.assertEqual(p.force_allowed(stamp('2026-09-14T'+clock)),expected)
+
+    def test_invalid_deadlines_fail_closed(self):
+        for value in ['22:29','07:30','12:00','24:00','invalid',True]:
+            with self.subTest(value=value),self.assertRaises(ValueError):
+                TrafficPolicy('fixture',force_training_at=value)
