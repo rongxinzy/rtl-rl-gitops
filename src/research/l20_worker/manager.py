@@ -3,11 +3,12 @@ import json,subprocess,time,os
 try:
  from .common import ROOT,config,atomic,sha,LOCK,REVISION
  from .artifacts import verify_phase,verify_checkpoint,model_path
- from . import phase_control as phases
+ from . import phase_control as phases,rotation
 except ImportError:
  from common import ROOT,config,atomic,sha,LOCK,REVISION
  from artifacts import verify_phase,verify_checkpoint,model_path
  import phase_control as phases
+ import rotation
 NAME='rtl-l20-training'
 SWANLAB_SECRETS='/mnt/data/rtl-l20-training/worker/secrets'
 def native_training(job,phase):return phase=='training' and job.get('telemetry')=='swanlab-native-v1'
@@ -30,6 +31,7 @@ def inspect():
 
 def start(folder,phase):
  cfg=config();job=json.loads((folder/'job.json').read_text())
+ if (ROOT/'rotation-pause').exists():return False
  if not phases.permitted(folder,phase):raise ValueError('phase not authorized')
  for name,expected in job['recipe_sha256'].items():
   if sha((folder/'recipe'/name).read_bytes())!=expected:raise ValueError('pinned recipe changed')
@@ -75,6 +77,7 @@ def failure(folder,state,reason):
 
 def step():
  with LOCK:
+  if config().get("rotation_enabled",False):rotation.reconcile(inspect)
   return _step()
 
 def _step():
@@ -88,7 +91,7 @@ def _step():
  folder,state=pending[0]
  state=phases.recover_grant(folder,state)
  lease_paused=phases.managed(folder) and state['phase'] in ('training','queued_training') and not phases.permitted(folder,'training')
- if (ROOT/'pause').exists() or not (ROOT/'enabled').exists() or lease_paused or phases.cancelled(folder):(folder/'pause.request').touch()
+ if (ROOT/'rotation-pause').exists() or (ROOT/'pause').exists() or not (ROOT/'enabled').exists() or lease_paused or phases.cancelled(folder):(folder/'pause.request').touch()
  else:(folder/'pause.request').unlink(missing_ok=True)
  if container:
   labels=container['Config'].get('Labels') or {}
@@ -140,7 +143,7 @@ def _step():
   except Exception:
    state['phase']='queued_'+previous;failure(folder,state,'owned_worker_disappeared')
    return
- if state['phase'].startswith('awaiting_') or (ROOT/'pause').exists() or not (ROOT/'enabled').exists():return
+ if state['phase'].startswith('awaiting_') or (ROOT/'rotation-pause').exists() or (ROOT/'pause').exists() or not (ROOT/'enabled').exists():return
  if time.time()<state.get('retry_at',0):return
  phase={'queued':'baseline','queued_baseline':'baseline','queued_training':'training','queued_candidate':'candidate'}[state['phase']]
  if not phases.permitted(folder,phase):return
