@@ -153,8 +153,10 @@
   "src/training/llamafactory/build_recipe.py",
   "src/training/llamafactory/check_config.py",
   "src/training/llamafactory/check_processor.py",
+  "src/training/llamafactory/native_swanlab.py",
   "src/training/llamafactory/requirements-runtime.txt",
   "src/training/llamafactory/state.py",
   "src/training/llamafactory/test_bridge.py",
+  "src/training/llamafactory/test_native_swanlab.py",
   "src/training/llamafactory/train.py"
 ]
