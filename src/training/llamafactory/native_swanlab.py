@@ -14,7 +14,8 @@ def settings(path):
  value=json.loads(Path(path).read_text())
  if set(value)!={'project','workspace','job_id','device_label'}:raise ValueError('invalid native telemetry settings')
  for key,val in value.items():
-  if not isinstance(val,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}',val):raise ValueError('invalid native telemetry identity')
+  pattern=r'[A-Za-z0-9][A-Za-z0-9_. -]{0,127}' if key=='device_label' else r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}'
+  if not isinstance(val,str) or not re.fullmatch(pattern,val) or val!=val.strip():raise ValueError('invalid native telemetry identity')
  return value
 
 def run_identity(job_sha,meta):
