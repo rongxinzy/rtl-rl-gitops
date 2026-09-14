@@ -30,6 +30,18 @@ class RelayTests(unittest.TestCase):
             context.start()
             self.addCleanup(context.stop)
 
+    def test_native_job_never_initializes_relay_run(self):
+        self.job['metadata']={'telemetry':'swanlab-native-v1'}
+        with patch.object(relay,'snapshot',return_value={'jobs':[self.job]}):
+            relay.worker(self.job['job_id'])
+        self.sdk.init.assert_not_called()
+        self.sdk.log.assert_not_called()
+        self.assertEqual(json.loads((self.root/(self.job['job_id']+'.json')).read_text())['status'],'native_telemetry')
+
+    def test_lf_label_alone_does_not_disable_legacy_relay(self):
+        self.job['metadata']={'backend':'llamafactory'}
+        self.assertFalse(relay.native_telemetry(self.job))
+
     def snapshot(self, **changes):
         job = copy.deepcopy(self.job)
         job.update(changes)

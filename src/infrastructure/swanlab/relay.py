@@ -14,6 +14,9 @@ SNAPSHOT = Path(os.environ.get('RELAY_SNAPSHOT', '/input/snapshot.json'))
 METADATA_VERSION = 2
 
 
+def native_telemetry(job):
+    return job.get('metadata', {}).get('telemetry') == 'swanlab-native-v1'
+
 def presentation(job, device=None):
     meta = job.get('metadata', {})
     pro = job.get('source') == 'pro6000d'
@@ -91,6 +94,10 @@ def worker(ident):
         while not stopping[0]:
             data = snapshot()
             job = next(j for j in data['jobs'] if j['job_id'] == ident)
+            if native_telemetry(job):
+                info.update(status='native_telemetry', observed_at=time.time())
+                atomic(STATE / (ident + '.json'), info)
+                return
             if job.get('source_stale'):
                 info.update(status='source_stale', observed_at=time.time(), source_observed_at=job.get('source_observed_at'))
                 atomic(record, info)
@@ -181,7 +188,7 @@ def supervise():
             jobs = sorted(data['jobs'], key=lambda j: j['training_complete'])
             for job in jobs:
                 ident = job['job_id']
-                if job.get('source_stale') or ident in children or time.time() < retry.get(ident, 0) or len(children) >= 2:
+                if native_telemetry(job) or job.get('source_stale') or ident in children or time.time() < retry.get(ident, 0) or len(children) >= 2:
                     continue
                 path = STATE / (ident + '.json')
                 receipt = json.loads(path.read_text()) if path.exists() else {}

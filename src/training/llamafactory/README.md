@@ -15,3 +15,11 @@ CPU 处理器检查：在新镜像内，以只读方式挂载实际模型目录�
 崩溃恢复补充：恢复前校验输出目录中所有正式六位数 checkpoint，选择同一任务最高完整步数，再 fsync 并原子修复 `latest`。这覆盖目录已 rename、指针尚未更新的窗口；第一步崩溃导致指针尚不存在时，也按同一不可变任务身份自动恢复。任一正式 checkpoint 损坏、属于其他任务、目录步数与 Trainer 不符则失败，不静默退回旧优化器。显式恢复较旧 checkpoint 被拒绝，避免重复执行已发布步数；`.tmp` 未发布目录不被采纳。
 
 最高已验证 checkpoint 达到 `max_steps` 时，恢复入口只重新生成 adapter 和最终状态文件，直接返回，不调用 LF Trainer、不加载 GPU 模型、不再发布同一步 checkpoint。CPU helper 测试覆盖完成、未完成、损坏与重复收尾场景。
+
+## Native SwanLab (new immutable recipes only)
+
+The pinned training image initially has no SwanLab SDK. Build a new image with `swanlab==0.10.0`; never install packages into an active training container. New recipes include `native_swanlab.py`. The manager opts in with `--swanlab-config /job/swanlab-config.json`, containing exactly project, workspace, job_id and device_label. The only credential mounts are `/run/secrets/swanlab-api-key` and `/run/secrets/swanlab-proxy`; the latter supplies the authenticated egress proxy in process memory. Neither enters LF arguments, public config, job metadata or command line.
+
+The SDK initializes an immutable job-bound run ID with `resume=allow`, `login(save=False)`, explicit SFT type/description/tags and hardware monitoring. Terminal capture and runtime/Git/environment-oriented probes are disabled. Lifecycle events are finite program-generated text. `use_swanlab=True` activates LLaMA-Factory's real SwanLab callback, whose automatic full TrainingArguments/model-config collector is disabled; scalar logging remains native. A same-runtime SDK 0.10.0 local/no-network probe confirmed the callback reused the preinitialized run, emitted loss and did not invoke `args.to_dict`.
+
+Pauses finish as aborted and native checkpoint resumes reopen the same run. Completed-checkpoint recovery finishes that run without another Trainer invocation. No opt-in means the previous report_to=none behavior and old recipe identity remain intact. Native ownership is published in `swanlab-native.json`; the relay must exclude these new jobs from scalar publishing to avoid duplicate ownership. This is not an acceptance claim for cloud resume or GPU training: those require a new bounded experiment and remote run verification.

@@ -92,7 +92,7 @@ def finalize_completed_resume(out,checkpoint,job_sha,max_steps):
 def main():
  p=argparse.ArgumentParser()
  for name in ('model','data','output','dataset-id'):p.add_argument('--'+name,required=True)
- p.add_argument('--max-steps',type=int,default=20);p.add_argument('--max-length',type=int,default=1024);p.add_argument('--rank',type=int,default=8);p.add_argument('--stop-after',type=int);p.add_argument('--resume-from');p.add_argument('--stop-file');p.add_argument('--preflight',action='store_true');a=p.parse_args()
+ p.add_argument('--max-steps',type=int,default=20);p.add_argument('--max-length',type=int,default=1024);p.add_argument('--rank',type=int,default=8);p.add_argument('--stop-after',type=int);p.add_argument('--resume-from');p.add_argument('--stop-file');p.add_argument('--preflight',action='store_true');p.add_argument('--swanlab-config');a=p.parse_args()
  if not 1<=a.max_steps<=20 or a.rank!=8 or a.max_length!=1024:raise ValueError('requires rank8 length1024 and <=20 steps')
  os.environ['HF_HUB_OFFLINE']='1';os.environ['TRANSFORMERS_OFFLINE']='1';os.environ['TOKENIZERS_PARALLELISM']='false'
  import torch
@@ -117,6 +117,9 @@ def main():
  if not marker.exists() or marker.read_text().strip()!=LF_COMMIT:raise ValueError('LLaMA-Factory source pin mismatch')
  cfg=config(a,out)
  identity={'schema_version':1,'backend':'llamafactory','llamafactory_commit':LF_COMMIT,'model_revision':REVISION,'model_manifest_sha256':digest(pathlib.Path(a.model)/'verification.json'),'dataset_id':a.dataset_id,'data_sha256':digest(a.data),'max_steps':a.max_steps,'max_length':a.max_length,'rank':8,'learning_rate':5e-5,'seed':42,'recipe_sha256':{n:digest(pathlib.Path(__file__).with_name(n)) for n in ['train.py','model.py','state.py','provenance.py','knowledge_data.py']},'training_config':cfg}
+ if a.swanlab_config:
+  identity['recipe_sha256']['native_swanlab.py']=digest(pathlib.Path(__file__).with_name('native_swanlab.py'))
+  identity['telemetry']='swanlab-native-v1'
  job_sha=bind(out,identity)
  import fcntl
  lock=(out.parent/'worker.lock').open('a');fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -134,7 +137,11 @@ def main():
   resume_step=manifest['step'];cfg['resume_from_checkpoint']=str(cp)
  elif (out/'latest').exists():raise ValueError('existing checkpoint requires --resume-from')
  reconcile_metrics(out,resume_step)
- if a.resume_from and finalize_completed_resume(out,cp,job_sha,a.max_steps):return
+ if a.resume_from and finalize_completed_resume(out,cp,job_sha,a.max_steps):
+  if a.swanlab_config:
+   from native_swanlab import settings,start
+   start(out,job_sha,settings(a.swanlab_config),identity,resume_step).finish('complete',resume_step)
+  return
  if not torch.cuda.is_available() or torch.cuda.device_count()!=1:raise RuntimeError('exactly one CUDA GPU required')
  if torch.cuda.mem_get_info()[0]<40*1024**3:raise RuntimeError('GPU requires >=40GiB free')
  write_dataset(out/'dataset',rows);(out/'data-preflight.json').write_text(canonical(report))
@@ -156,8 +163,25 @@ def main():
    print(canonical(event),flush=True)
   def on_save(self,args,state,control,**kwargs):
    publish_native(out,pathlib.Path(args.output_dir)/f'checkpoint-{state.global_step}',state.global_step,job_sha)
- from llamafactory.train.tuner import run_exp
- run_exp(args=cfg,callbacks=[Bridge()])
+   if telemetry:telemetry.event('checkpoint',state.global_step)
+ from llamafactory.train import tuner
+ telemetry=None;original_callback=None
+ if a.swanlab_config:
+  from native_swanlab import settings,start,install_callback_guard
+  meta=settings(a.swanlab_config)
+  telemetry=start(out,job_sha,meta,identity,resume_step)
+  cfg.update(use_swanlab=True,swanlab_project=meta['project'],swanlab_workspace=meta['workspace'],swanlab_run_name=meta['job_id'],swanlab_mode='cloud',swanlab_logdir=str(out/'swanlab'))
+  original_callback=install_callback_guard(tuner)
+ try:
+  tuner.run_exp(args=cfg,callbacks=[Bridge()])
+ except BaseException:
+  if telemetry:
+   try:telemetry.finish('failed',resume_step)
+   except Exception:pass
+  raise
+ finally:
+  if original_callback is not None:tuner.get_swanlab_callback=original_callback
  cp=out/(out/'latest').read_text().strip()
- finalize(out,cp,job_sha,a.max_steps,resume_step,torch.cuda.max_memory_allocated(),time.monotonic()-started)
+ result=finalize(out,cp,job_sha,a.max_steps,resume_step,torch.cuda.max_memory_allocated(),time.monotonic()-started)
+ if telemetry:telemetry.finish('complete' if result['status']=='complete' else 'paused',result['step'])
 if __name__=='__main__':main()

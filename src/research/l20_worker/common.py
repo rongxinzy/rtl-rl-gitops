@@ -61,6 +61,9 @@ def admit(body):
  if 'profile_id' in body and any(p.is_symlink() or not p.is_file() for p in source.glob('*.py')):raise ValueError('invalid profile recipe files')
  recipe={p.name:sha(p.read_bytes()) for p in source.glob('*.py') if not p.name.startswith('test_')}
  if 'profile_id' in body and (recipe!=cfg['recipe_sha256'] or any(p.is_symlink() for p in source.glob('*.py'))):raise ValueError('invalid profile recipe files')
+ if 'native_swanlab.py' in recipe:
+  if recipe!=cfg.get('recipe_sha256') or any(p.is_symlink() for p in source.glob('*.py')):raise ValueError('native telemetry requires trusted recipe hashes')
+  meta['telemetry']='swanlab-native-v1'
  meta['recipe_sha256']=recipe;ident='l20-'+sha(canonical(meta))[:24];folder=ROOT/'jobs'/ident
  if folder.exists():
   if json.loads((folder/'job.json').read_text())!=meta:raise ValueError('job identity conflict')

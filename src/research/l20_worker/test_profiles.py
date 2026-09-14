@@ -31,6 +31,13 @@ class ProfileTests(unittest.TestCase):
   self.assertNotEqual(old['job_id'],new['job_id']);self.assertEqual(self.job(new)['image_id'],self.entry['image_id']);self.assertEqual(self.job(new)['profile_id'],'lf-v1')
   self.assertEqual(c.admit(body)['status'],'already_admitted');self.assertEqual(self.job(old),old_meta)
   self.assertEqual((self.root/'jobs'/new['job_id']/'recipe/train.py').read_bytes(),(self.source/'train.py').read_bytes())
+ def test_native_telemetry_requires_full_hash_trust(self):
+  helper=self.source/'native_swanlab.py';helper.write_text('# native helper')
+  with self.assertRaisesRegex(ValueError,'trusted recipe'):c.admit(self.body)
+  self.cfg['recipe_sha256']={p.name:c.sha(p.read_bytes()) for p in self.source.glob('*.py')}
+  result=c.admit(self.body)
+  self.assertEqual(self.job(result)['telemetry'],'swanlab-native-v1')
+  self.assertEqual(self.job(result)['recipe_sha256'],self.cfg['recipe_sha256'])
  def test_unknown_profile_and_arbitrary_execution_fields_rejected(self):
   for extra in ({'profile_id':'unknown'},{'profile_id':'../escape'},{'profile_id':None},{'image_id':self.entry['image_id']},{'recipe_path':'/tmp/other'}):
    with self.subTest(extra=extra),self.assertRaises(ValueError):c.admit({**self.body,**extra})

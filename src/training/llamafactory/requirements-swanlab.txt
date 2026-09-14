@@ -1,0 +1,13 @@
+swanlab==0.10.0
+platformdirs==4.11.4
+pwinput==1.0.3
+pydantic-settings==2.15.0
+pyecharts==2.1.0
+pyroaring==1.0.3
+watchdog==6.0.0
+wrapt==2.4.1
+nvidia-ml-py==13.610.43
+prettytable==3.18.0
+simplejson==4.1.2
+wcwidth==0.8.2
+python-dotenv==1.2.3
