@@ -34,7 +34,7 @@
                   "python3",
                   "/app/bridge.py"
                 ],
-                "image": "docker.io/library/rtl-tekton-runtime@sha256:ed6625c4230fa46d33b78ac0f55da51f2a21f69dc7a511acd24799fcada682a2",
+                "image": "docker.io/library/rtl-tekton-runtime@sha256:9aa27f1dbc820d6cc64bd6c19f623f344e87d0d05dafbe479b06763085d6afa0",
                 "imagePullPolicy": "Never",
                 "name": "bridge",
                 "resources": {
@@ -361,7 +361,7 @@
                 "memory": "48Mi"
               }
             },
-            "image": "docker.io/library/rtl-tekton-runtime@sha256:ed6625c4230fa46d33b78ac0f55da51f2a21f69dc7a511acd24799fcada682a2",
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:9aa27f1dbc820d6cc64bd6c19f623f344e87d0d05dafbe479b06763085d6afa0",
             "imagePullPolicy": "Never",
             "name": "execute",
             "securityContext": {
@@ -446,7 +446,7 @@
                 "memory": "48Mi"
               }
             },
-            "image": "docker.io/library/rtl-tekton-runtime@sha256:ed6625c4230fa46d33b78ac0f55da51f2a21f69dc7a511acd24799fcada682a2",
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:9aa27f1dbc820d6cc64bd6c19f623f344e87d0d05dafbe479b06763085d6afa0",
             "imagePullPolicy": "Never",
             "name": "execute",
             "securityContext": {
@@ -535,7 +535,7 @@
                 "memory": "48Mi"
               }
             },
-            "image": "docker.io/library/rtl-tekton-runtime@sha256:ed6625c4230fa46d33b78ac0f55da51f2a21f69dc7a511acd24799fcada682a2",
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:9aa27f1dbc820d6cc64bd6c19f623f344e87d0d05dafbe479b06763085d6afa0",
             "imagePullPolicy": "Never",
             "name": "execute",
             "securityContext": {
@@ -632,7 +632,7 @@
                 "memory": "48Mi"
               }
             },
-            "image": "docker.io/library/rtl-tekton-runtime@sha256:ed6625c4230fa46d33b78ac0f55da51f2a21f69dc7a511acd24799fcada682a2",
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:9aa27f1dbc820d6cc64bd6c19f623f344e87d0d05dafbe479b06763085d6afa0",
             "imagePullPolicy": "Never",
             "name": "execute",
             "securityContext": {
@@ -717,7 +717,7 @@
                 "memory": "48Mi"
               }
             },
-            "image": "docker.io/library/rtl-tekton-runtime@sha256:ed6625c4230fa46d33b78ac0f55da51f2a21f69dc7a511acd24799fcada682a2",
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:9aa27f1dbc820d6cc64bd6c19f623f344e87d0d05dafbe479b06763085d6afa0",
             "imagePullPolicy": "Never",
             "name": "execute",
             "securityContext": {
@@ -818,7 +818,7 @@
               "kind": "Task",
               "name": "rtl-l20-baseline-v1"
             },
-            "timeout": "20m0s"
+            "timeout": "15h0m0s"
           },
           {
             "name": "training",
@@ -840,7 +840,7 @@
               "kind": "Task",
               "name": "rtl-l20-training-v1"
             },
-            "timeout": "50m0s"
+            "timeout": "15h0m0s"
           },
           {
             "name": "candidate",
@@ -862,7 +862,7 @@
               "kind": "Task",
               "name": "rtl-l20-candidate-v1"
             },
-            "timeout": "20m0s"
+            "timeout": "15h0m0s"
           },
           {
             "name": "compare",

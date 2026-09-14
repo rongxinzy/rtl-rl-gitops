@@ -9,10 +9,27 @@ from client import worker, executor, identity, check_status, result
 def retryable(exc):
     return isinstance(exc, (TimeoutError, OSError)) and (not isinstance(exc, urllib.error.HTTPError) or exc.code in (409,429,500,502,503,504))
 
+MAX_ROTATION_PAUSE = 14 * 3600
+
 def phase(job, uid, name, deadline):
-    while time.monotonic()<deadline:
+    # Only host-verified scheduled rotation pauses suspend the active-work budget.
+    # The wall limit remains bounded if inference cannot hand the GPUs back.
+    wall_deadline = deadline + MAX_ROTATION_PAUSE
+    previous = time.monotonic()
+    was_paused = False
+    paused_seconds = 0.0
+    while time.monotonic() < wall_deadline:
+        now = time.monotonic()
+        if was_paused:
+            extra = min(max(0.0, now - previous), MAX_ROTATION_PAUSE - paused_seconds)
+            deadline += extra
+            paused_seconds += extra
+        previous = now
+        if now >= deadline:
+            break
         try:
             state = check_status(worker('/jobs/'+job+'/status'), job, uid, unbound=True)
+            was_paused = state.get('rotation_paused') is True
             if state['phase']=='failed':
                 raise ValueError('worker phase exhausted its bounded retry budget')
             # A retry may arrive after this phase completed; retain the original run binding.
@@ -81,7 +98,7 @@ def main():
         value=compare(a.job_id,a.run_uid,time.monotonic()+900)
         result('outcome',value['outcome'])
     else:
-        value=phase(a.job_id,a.run_uid,a.action,time.monotonic()+(2400 if a.action=='training' else 900))
+        value=phase(a.job_id,a.run_uid,a.action,time.monotonic()+(3600 if a.action=='training' else 900))
     result('proof',value)
     print(json.dumps({'event':'task_verified','action':a.action,'job_id':a.job_id}))
 
