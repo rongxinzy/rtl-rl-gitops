@@ -63,6 +63,12 @@ def force_training_due(spec, now):
     return elapsed >= offset
 
 
+def backup_window(spec, now):
+    """Preparation and overnight coverage share a midnight-safe window."""
+    return desired({**spec, 'mode': 'Auto', 'trainingUntil': None,
+                    'trainingStart': spec.get('backupPrepareStart', '22:00')}, now) == 'Training'
+
+
 def training_deadline(spec, now):
     if spec.get('mode', 'Auto') == 'Training':
         end = parse(spec['trainingUntil'])
@@ -153,6 +159,15 @@ class Effects:
         except (urllib.error.URLError, TimeoutError, OSError, ValueError, KeyError, IndexError, TypeError):
             PROBE_CACHE.pop(url, None)
             return False
+    def l20(self, role=None):
+        if role is not None:
+            if role not in ('inference', 'training'):
+                raise ValueError('Unsupported L20 role')
+            self.guard()
+        token = Path('/secrets/l20/token').read_text().strip()
+        return request('http://172.18.6.123:18766/rotation' + ('/status' if role is None else ''),
+                       'GET' if role is None else 'POST', None if role is None else {'role': role},
+                       {'Authorization': 'Bearer ' + token}, timeout=8)
     def host(self, action, deadline=None):
         if action != 'status':
             self.guard()
@@ -188,6 +203,17 @@ def reconcile(obj, effects, now):
         return result
     route = effects.router()
     result['traffic'] = {k:route[k] for k in ('primary_inflight','backup_inflight','business_idle_seconds','last_background_at','protected_inflight','background_inflight','background_rejected_total','healthy_backends') if k in route}
+    rotate = spec.get('rotateL20', False)
+    night_backup = rotate and spec.get('mode', 'Auto') == 'Auto' and backup_window(spec, now)
+    l20 = {}
+    if rotate:
+        try:
+            l20 = effects.l20()
+            if night_backup and l20.get('requested_role') != 'inference':
+                l20 = effects.l20('inference')
+        except (OSError, ValueError, TimeoutError):
+            l20 = {'phase': 'unavailable', 'ready': False}
+        result['l20'] = {k: l20[k] for k in ('phase', 'ready', 'training_allowed', 'requested_role') if k in l20}
     target = result['desiredMode']
     if host.get('idle_after_completion'):
         target = 'Inference'
@@ -215,6 +241,23 @@ def reconcile(obj, effects, now):
                 effects.switch('primary')
             return {**result, 'phase': 'TooLateToStartTraining'}
         forced = force_training_due(spec, now)
+        if rotate:
+            # Only a live worker plus an actual model request establishes readiness.
+            backup_ready = l20.get('requested_role') == 'inference' and l20.get('ready') is True and effects.probe('backup')
+            if backup_ready:
+                idle = route.get('business_idle_seconds', -1) >= spec.get('businessIdleSeconds', 300)
+                if not forced and not already_running and not idle:
+                    return {**result, 'phase': 'WaitingForBusinessIdle'}
+                if route.get('active_backend') != 'backup':
+                    effects.switch('backup')
+                    return {**result, 'forceTraining': forced, 'phase': 'DrainingPrimary'}
+                if route.get('converged') is not True or (not forced and route.get('primary_inflight') != 0):
+                    return {**result, 'forceTraining': forced, 'phase': 'DrainingPrimary'}
+                result['host'] = effects.host('training', deadline)
+                return {**result, 'forceTraining': forced, 'phase': 'Training' if result['host'].get('phase') == 'training' else 'StartingTraining'}
+            result['fallbackUnavailable'] = True
+            if not forced:
+                return {**result, 'phase': 'BlockedBackupNotReady'}
         if forced:
             # Re-observe the shared router on every reconcile; persisted controller
             # status is not authority to stop inference after a restart.
@@ -258,7 +301,7 @@ def reconcile(obj, effects, now):
     # Real probe covers semantic HTTP errors even when /health remains green.
     primary_ready = host.get('phase') == 'glm_ready' and effects.probe('primary')
     if not primary_ready and route.get('active_backend') != 'backup':
-        if effects.probe('backup'):
+        if (not rotate or (l20.get('requested_role') == 'inference' and l20.get('ready') is True)) and effects.probe('backup'):
             effects.switch('backup')
             route = {**route, 'active_backend': 'backup'}
         else:
@@ -269,6 +312,13 @@ def reconcile(obj, effects, now):
         return {**result, 'phase': phase}
     if route.get('active_backend') != 'primary':
         effects.switch('primary')
+        if rotate:
+            return {**result, 'phase': 'DrainingBackup'}
+    if rotate and not night_backup and spec.get('mode', 'Auto') == 'Auto':
+        if route.get('converged') is not True or route.get('backup_inflight') != 0:
+            return {**result, 'phase': 'DrainingBackup'}
+        if l20.get('requested_role') != 'training':
+            effects.l20('training')
     return {**result, 'phase': 'PrimaryReady'}
 
 
