@@ -1066,7 +1066,7 @@
         "namespace": "rtl-system"
       },
       "data": {
-        "config.yaml": "model_list:\n  - model_name: GLM-5.3-Flash\n    litellm_params:\n      model: openai/GLM-5.3-Flash\n      api_base: http://172.18.4.199:30000/v1\n      api_key: os.environ/PRIMARY_KEY\nlitellm_settings:\n  request_timeout: 300\n  stream_timeout: 600\n  drop_params: true\ngeneral_settings:\n  master_key: os.environ/MASTER_KEY\n"
+        "config.yaml": "model_list:\n  - model_name: GLM-5.3-Flash\n    litellm_params:\n      model: openai/GLM-5.3-Flash\n      api_base: http://172.18.4.199:30000/v1\n      api_key: os.environ/LITELLM_BACKEND_KEY\nlitellm_settings:\n  request_timeout: 300\n  stream_timeout: 600\n  drop_params: true\ngeneral_settings:\n  master_key: os.environ/MASTER_KEY\n"
       }
     },
     {
@@ -1144,13 +1144,8 @@
                     }
                   },
                   {
-                    "name": "PRIMARY_KEY",
-                    "valueFrom": {
-                      "secretKeyRef": {
-                        "name": "rtl-router-admin",
-                        "key": "primary-key"
-                      }
-                    }
+                    "name": "LITELLM_BACKEND_KEY",
+                    "value": "unauthenticated-local-backend"
                   }
                 ],
                 "ports": [
