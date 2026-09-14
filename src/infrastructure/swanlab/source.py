@@ -86,6 +86,8 @@ def metadata(folder, identity, reader=read):
             result[key] = job[key]
     if job.get('orchestrator') in ('tekton', 'brain', 'manual'):
         result['orchestrator'] = job['orchestrator']
+    if job.get('telemetry') == 'swanlab-native-v1':
+        result['telemetry'] = 'swanlab-native-v1'
     preflight = optional_json(folder, 'run/data-preflight.json', reader)
     data = {}
     for key in ('examples', 'dropped_overlength'):

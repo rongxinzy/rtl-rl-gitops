@@ -64,6 +64,41 @@ class Tests(unittest.TestCase):
   self.assertEqual(self.read()['attempts'],0)
  def container(self,running=True):
   return {'Id':'owned','Image':self.meta['image_id'],'Config':{'Labels':{'rtl.l20.job':self.job,'rtl.l20.phase':'training'}},'HostConfig':{'NetworkMode':'none','DeviceRequests':[{'DeviceIDs':['0']}]},'State':{'Running':running,'ExitCode':0}}
+ def native_container(self,phase='training'):
+  self.meta['telemetry']='swanlab-native-v1';c.atomic(self.folder/'job.json',self.meta)
+  obj=self.container();obj['Config']['Labels']['rtl.l20.phase']=phase
+  obj['HostConfig']['NetworkMode']='rtl-swanlab' if phase=='training' else 'none'
+  obj['Mounts']=[{'Type':'bind','Source':m.SWANLAB_SECRETS+'/'+n,'Destination':'/run/secrets/'+n,'RW':False} for n in ('swanlab-api-key','swanlab-proxy')] if phase=='training' else []
+  return obj
+ def test_native_phase_network_and_mounts_adopt(self):
+  for phase in ('baseline','training','candidate'):
+   obj=self.native_container(phase)
+   with patch.object(m,'inspect',return_value=obj),patch.object(m,'start') as start:m.step()
+   self.assertEqual(self.read()['phase'],phase);start.assert_not_called()
+ def test_native_wrong_network_or_secret_mount_rejected(self):
+  for fault in ('network','writable','source','missing','extra','baseline-secret'):
+   obj=self.native_container()
+   if fault=='network':obj['HostConfig']['NetworkMode']='bridge'
+   elif fault=='writable':obj['Mounts'][0]['RW']=True
+   elif fault=='source':obj['Mounts'][0]['Source']='/other/key'
+   elif fault=='missing':obj['Mounts'].pop()
+   elif fault=='extra':obj['Mounts'].append(dict(obj['Mounts'][0]))
+   else:obj['Config']['Labels']['rtl.l20.phase']='baseline';obj['HostConfig']['NetworkMode']='none'
+   with self.subTest(fault=fault),patch.object(m,'inspect',return_value=obj),self.assertRaises(RuntimeError):m.step()
+ def test_native_launch_only_training_has_secret_network_and_cli(self):
+  for phase in ('baseline','training','candidate'):
+   self.meta.update(telemetry='swanlab-native-v1',dataset_id='d'*64)
+   for name in ('data','prompts','knowledge_prompts'):
+    (self.folder/(name+'.jsonl')).write_text('test');self.meta[name+'_sha256']=c.sha('test')
+   c.atomic(self.folder/'job.json',self.meta);ready=self.root/'ready';ready.touch()
+   result=subprocess.CompletedProcess([],0,'50000','')
+   with patch.object(m,'config',return_value={'model_ready':str(ready)}),patch.object(m,'model_path',return_value=self.root),patch.object(m,'command',return_value=result) as cmd:
+    self.assertTrue(m.start(self.folder,phase))
+   args=cmd.call_args.args[0];native=phase=='training'
+   self.assertEqual(args[args.index('--network')+1],'rtl-swanlab' if native else 'none')
+   self.assertEqual('--swanlab-config' in args,native)
+   self.assertEqual(sum('dst=/run/secrets/' in arg for arg in args),2 if native else 0)
+   self.assertNotIn('SWANLAB_API_KEY',str(args))
  def test_restart_adopts_running_worker_without_relaunch(self):
   with patch.object(m,'inspect',return_value=self.container()),patch.object(m,'start') as start:m.step()
   start.assert_not_called();self.assertEqual(self.read()['phase'],'training')

@@ -30,6 +30,14 @@ class SourceTests(unittest.TestCase):
     def metrics(self, rows, tail=''):
         (self.folder / 'run/metrics.jsonl').write_text(''.join(json.dumps(r) + '\n' for r in rows) + tail)
 
+    def test_native_flag_whitelist_preserves_legacy(self):
+        self.put('job.json', {'telemetry':'swanlab-native-v1','secret':'private'})
+        meta=source.metadata(self.folder,self.identity)
+        self.assertEqual(meta['telemetry'],'swanlab-native-v1')
+        self.assertNotIn('secret',meta)
+        self.put('job.json', {'telemetry':'other','backend':'llamafactory'})
+        self.assertNotIn('telemetry',source.metadata(self.folder,self.identity))
+
     def test_partial_line_and_whitelist(self):
         self.metrics([self.row], '{"step":2')
         snap = source.snapshot(self.root)

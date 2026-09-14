@@ -9,6 +9,17 @@ except ImportError:
  from artifacts import verify_phase,verify_checkpoint,model_path
  import phase_control as phases
 NAME='rtl-l20-training'
+SWANLAB_SECRETS='/mnt/data/rtl-l20-training/worker/secrets'
+def native_training(job,phase):return phase=='training' and job.get('telemetry')=='swanlab-native-v1'
+def expected_network(job,phase):return 'rtl-swanlab' if native_training(job,phase) else 'none'
+def verify_telemetry_mounts(container,job,phase):
+ mounts=container.get('Mounts') or []
+ expected={SWANLAB_SECRETS+'/'+name:'/run/secrets/'+name for name in ('swanlab-api-key','swanlab-proxy')}
+ secret_mounts=[m for m in mounts if str(m.get('Destination','')).startswith('/run/secrets')]
+ if not native_training(job,phase):
+  if secret_mounts:raise RuntimeError('foreign telemetry mounts')
+  return
+ if len(secret_mounts)!=2 or any(not any(m.get('Source')==source and m.get('Destination')==dest and m.get('Type')=='bind' and m.get('RW') is False for m in secret_mounts) for source,dest in expected.items()):raise RuntimeError('foreign telemetry mounts')
 def command(args,timeout=20):return subprocess.run(args,capture_output=True,text=True,timeout=timeout)
 def inspect():
  r=command(['docker','inspect',NAME])
@@ -31,10 +42,16 @@ def start(folder,phase):
  model=model_path(cfg,folder)
  if model is None:return False
  (folder/'run').mkdir(exist_ok=True)
- args=['docker','run','-d','--name',NAME,'--label','rtl.l20.job='+folder.name,'--label','rtl.l20.phase='+phase,'--network','none','--gpus','device=0','--cpus','8','--memory','24g','--memory-swap','24g','--shm-size','2g','--cap-drop','ALL','--security-opt','no-new-privileges','--env','HF_HUB_OFFLINE=1','--env','TRANSFORMERS_OFFLINE=1','--env','PYTHONDONTWRITEBYTECODE=1','--env','PYTHONUNBUFFERED=1','--mount','type=bind,src='+str(model)+',dst=/model,readonly','--mount','type=bind,src='+str(folder)+',dst=/job',job['image_id'],'python3']
+ args=['docker','run','-d','--name',NAME,'--label','rtl.l20.job='+folder.name,'--label','rtl.l20.phase='+phase,'--network',expected_network(job,phase),'--gpus','device=0','--cpus','8','--memory','24g','--memory-swap','24g','--shm-size','2g','--cap-drop','ALL','--security-opt','no-new-privileges','--env','HF_HUB_OFFLINE=1','--env','TRANSFORMERS_OFFLINE=1','--env','PYTHONDONTWRITEBYTECODE=1','--env','PYTHONUNBUFFERED=1','--mount','type=bind,src='+str(model)+',dst=/model,readonly','--mount','type=bind,src='+str(folder)+',dst=/job',job['image_id'],'python3']
+ if native_training(job,phase):
+  atomic(folder/'swanlab-config.json',{'project':'RTL-RL','workspace':'krli','job_id':folder.name,'device_label':'L20 GPU0'})
+  insert=args.index(job['image_id'])
+  for name in ('swanlab-api-key','swanlab-proxy'):
+   args[insert:insert]=['--mount','type=bind,src='+SWANLAB_SECRETS+'/'+name+',dst=/run/secrets/'+name+',readonly'];insert+=2
  if phases.managed(folder):args[args.index('--network'):args.index('--network')]=['--label','rtl.l20.run_uid='+phases.control(folder)['run_uid']]
  if phase=='training':
   args+=['/job/recipe/train.py','--model','/model','--data','/job/data.jsonl','--output','/job/run','--dataset-id',job['dataset_id'],'--max-steps',str(job['max_steps']),'--max-length','1024','--stop-file','/job/pause.request']
+  if native_training(job,phase):args+=['--swanlab-config','/job/swanlab-config.json']
   if (folder/'run/latest').exists():
    verify_checkpoint(folder)
    args+=['--resume-from','latest']
@@ -77,11 +94,12 @@ def _step():
   labels=container['Config'].get('Labels') or {}
   if labels.get('rtl.l20.job')!=folder.name:raise RuntimeError('foreign container identity')
   job=json.loads((folder/'job.json').read_text())
-  devices=container.get('HostConfig',{}).get('DeviceRequests') or []
-  if container.get('Image')!=job['image_id'] or container.get('HostConfig',{}).get('NetworkMode')!='none' or len(devices)!=1 or devices[0].get('DeviceIDs')!=['0']:
-   raise RuntimeError('foreign container resources')
   phase=labels.get('rtl.l20.phase')
   if phase not in ('baseline','training','candidate'):raise RuntimeError('foreign container phase')
+  verify_telemetry_mounts(container,job,phase)
+  devices=container.get('HostConfig',{}).get('DeviceRequests') or []
+  if container.get('Image')!=job['image_id'] or container.get('HostConfig',{}).get('NetworkMode')!=expected_network(job,phase) or len(devices)!=1 or devices[0].get('DeviceIDs')!=['0']:
+   raise RuntimeError('foreign container resources')
   if phases.managed(folder) and (not phases.granted(folder,phase) or labels.get('rtl.l20.run_uid')!=phases.control(folder)['run_uid']):raise RuntimeError('foreign orchestrator binding')
   if container['State']['Running']:
    if phase=='training' and not phases.permitted(folder,phase):(folder/'pause.request').touch()
