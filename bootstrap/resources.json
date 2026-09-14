@@ -46,6 +46,10 @@
           {
             "server": "https://kubernetes.default.svc",
             "namespace": "tekton-pipelines-resolvers"
+          },
+          {
+            "server": "https://kubernetes.default.svc",
+            "namespace": "rtl-swanlab-proxy"
           }
         ],
         "clusterResourceWhitelist": [
@@ -831,6 +835,51 @@
             ]
           }
         ]
+      }
+    },
+    {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "name": "rtl-swanlab-proxy",
+        "namespace": "argocd"
+      },
+      "spec": {
+        "project": "rtl-lab",
+        "source": {
+          "repoURL": "https://github.com/rongxinzy/rtl-rl-gitops.git",
+          "targetRevision": "main",
+          "path": "clusters/lab/rtl-swanlab-proxy",
+          "directory": {
+            "include": "*.json"
+          }
+        },
+        "destination": {
+          "server": "https://kubernetes.default.svc",
+          "namespace": "argocd"
+        },
+        "syncPolicy": {
+          "automated": {
+            "enabled": true,
+            "selfHeal": true,
+            "prune": false,
+            "allowEmpty": false
+          },
+          "syncOptions": [
+            "ServerSideApply=true",
+            "DisableClientSideApplyMigration=true",
+            "RespectIgnoreDifferences=true",
+            "FailOnSharedResource=true"
+          ],
+          "retry": {
+            "limit": 5,
+            "backoff": {
+              "duration": "5s",
+              "factor": 2,
+              "maxDuration": "1m"
+            }
+          }
+        }
       }
     }
   ]
