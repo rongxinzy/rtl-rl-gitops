@@ -20,11 +20,30 @@ class Tests(unittest.TestCase):
  def read(self):return json.loads((self.folder/'state.json').read_text())
  def body(self):
   from research.knowledge.evaluation import freeze,prompts
-  data=''.join(json.dumps({'task_id':'t'+str(i),'split':'train','validation_level':'Q2'})+'\n' for i in range(8))
+  data=''.join(json.dumps({'task_id':'t'+str(i),'split':'train','validation_level':'Q2','family_id':('bit_reverse' if i%2 else 'population_count')})+'\n' for i in range(8))
   code=''.join(json.dumps({'task_id':'v'+str(i),'spec':'module'})+'\n' for i in range(3))
   quiz=''.join(json.dumps(x)+'\n' for x in prompts(freeze()))
   return {'dataset_id':'a'*64,'freeze_id':'b'*64,'data':data,'data_sha256':c.sha(data),'prompts':code,'prompts_sha256':c.sha(code),'max_steps':20,'knowledge_prompts':quiz,'knowledge_prompts_sha256':c.sha(quiz),'knowledge_freeze_id':freeze()['freeze_id']}
  def test_prompt_only_knowledge_admission(self):c.validate(self.body())
+ def family_body(self,families):
+  b=self.body();rows=[json.loads(x) for x in b['data'].splitlines()]
+  for row,family in zip(rows,families):
+   if family is None:row.pop('family_id',None)
+   else:row['family_id']=family
+  b['data']=''.join(json.dumps(x)+'\n' for x in rows);b['data_sha256']=c.sha(b['data']);return b
+ def test_single_family_rejected_before_queue_creation(self):
+  with patch.object(c,'config') as config:
+   with self.assertRaisesRegex(ValueError,'two verified'):c.admit(self.family_body(['bitvector-dsl-v1']*8))
+  config.assert_not_called()
+  self.assertEqual(list((self.root/'jobs').iterdir()),[self.folder])
+ def test_missing_empty_or_nonstring_family_rejected(self):
+  for invalid in (None,'','  ',7,['bit_reverse'],' bit_reverse'):
+   with self.subTest(invalid=invalid),self.assertRaisesRegex(ValueError,'family_id'):
+    c.validate(self.family_body([invalid]+['bit_reverse']*3+['population_count']*4))
+ def test_distinct_task_ids_do_not_create_distinct_families(self):
+  with self.assertRaisesRegex(ValueError,'two verified'):c.validate(self.family_body(['bitvector-dsl-v1']*8))
+ def test_verified_families_preserved_without_relabeling(self):
+  b=self.family_body(['bit_reverse']*4+['population_count']*4);before=b['data'];c.validate(b);self.assertEqual(b['data'],before)
  def test_knowledge_answers_cannot_enter_prompt_field(self):
   b=self.body();rows=[json.loads(x) for x in b['knowledge_prompts'].splitlines()];rows[0]['answer']={'private':True}
   b['knowledge_prompts']=''.join(json.dumps(x)+'\n' for x in rows);b['knowledge_prompts_sha256']=c.sha(b['knowledge_prompts'])
