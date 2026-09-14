@@ -163,6 +163,7 @@ def main():
    print(canonical(event),flush=True)
   def on_save(self,args,state,control,**kwargs):
    publish_native(out,pathlib.Path(args.output_dir)/f'checkpoint-{state.global_step}',state.global_step,job_sha)
+   if telemetry:telemetry.event('checkpoint',state.global_step)
  from llamafactory.train import tuner
  telemetry=None;original_callback=None
  if a.swanlab_config:

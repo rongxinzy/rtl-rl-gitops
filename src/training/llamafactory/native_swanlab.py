@@ -48,6 +48,10 @@ def start(out,job_sha,meta,training,resume_step,sdk=None,key_path=KEY_PATH,proxy
   import swanlab as sdk
  if sdk.__version__!=SDK_VERSION:raise ValueError('native SDK version mismatch')
  public={k:training[k] for k in ('backend','model_revision','dataset_id','max_steps','max_length','rank','learning_rate','seed','llamafactory_commit') if k in training}
+ public['swanlab_sdk_version']=SDK_VERSION
+ cfg=training.get('training_config',{})
+ if isinstance(cfg,dict):
+  public['training_config']={k:cfg[k] for k in ('template','finetuning_type','per_device_train_batch_size','gradient_accumulation_steps','learning_rate','lr_scheduler_type','optim','lora_rank','lora_alpha','lora_dropout','lora_target','bf16','quantization_bit','quantization_method','quantization_type','double_quantization','gradient_checkpointing','save_steps','seed') if k in cfg}
  acceptance=training.get('acceptance_only') is True
  public.update(acceptance_only=acceptance,task_type='backend-acceptance' if acceptance else 'sft',task_description='Official Qwen RTL NF4 QLoRA supervised training with independent frozen evaluation',job_id=meta['job_id'],job_sha256=job_sha,device_label=meta['device_label'],telemetry_owner='llamafactory-native')
  if acceptance:public['task_description']='CPU-only native SwanLab callback and cloud resume acceptance; synthetic metrics, no model training or capability result'
