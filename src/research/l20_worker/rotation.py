@@ -83,6 +83,7 @@ def reconcile(inspect):
    # Manager validates ownership and handles checkpoint/exit/removal.
    save('pausing');return
   if active in ('active','activating'):
+   state.setdefault('start_sent_at',now)
    if healthy():save('inference_ready');return
    if now-state.get('start_sent_at',now)>900:save('error');return
    save('starting_inference');return

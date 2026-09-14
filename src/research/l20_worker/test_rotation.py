@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import patch,Mock
 from . import rotation as r,common as c,manager as m,server as s
 GPU_FREE=r.gpu_free
+PREPARED=r.prepared
 class Tests(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.root=Path(self.tmp.name);(self.root/'enabled').touch()
@@ -68,3 +69,22 @@ class Tests(unittest.TestCase):
   with patch.object(m,'ROOT',self.root),patch.object(m,'config',return_value={}),patch.object(m,'inspect',return_value=None),patch.object(m,'start') as start:
    m.step();start.assert_not_called()
   self.assertTrue((folder/'pause.request').exists())
+
+ def test_preflight_manifest_and_build_hash(self):
+  import hashlib
+  root=self.root/'backup';rev='621d456e93e926e4b52f85cff5f634358c1828f9';engine='d94f44e79aa219d8057e8de21f95360a187ebf41'
+  (root/'models'/rev).mkdir(parents=True);(root/'readiness').mkdir();(root/'llama.cpp/build/bin').mkdir(parents=True)
+  files=[]
+  for i in range(1,4):
+   name=f'GLM-5.3-Flash-UD-IQ1_S-{i:05d}-of-00003.gguf';(root/'models'/rev/name).write_bytes(b'x');files.append({'path':'UD-IQ1_S/'+name,'size':1,'sha256':'a'*64})
+  c.atomic(root/'model-manifest.json',{'revision':rev,'files':files})
+  c.atomic(root/'models'/rev/'verification.json',{'revision':rev,'files':files,'sha256_verified':True})
+  c.atomic(root/'readiness/READY.json',{'model_revision':rev,'engine_revision':engine,'quantization':'UD-IQ1_S','protocol_checks':['chat_text','responses_json','responses_stream','responses_tool_stream','responses_tool_roundtrip']})
+  binary=root/'llama.cpp/build/bin/llama-server';binary.write_bytes(b'binary');(root/'llama.cpp/PINNED_REVISION').write_text(engine)
+  c.atomic(root/'BUILD_READY.json',{'source_revision':engine,'files':{'llama.cpp/build/bin/llama-server':hashlib.sha256(b'binary').hexdigest()}})
+  with patch.object(r,'BACKUP',root):
+   self.assertTrue(PREPARED());binary.write_bytes(b'changed');self.assertFalse(PREPARED())
+ def test_unprepared_never_starts(self):
+  r.request({'role':'inference'})
+  with patch.object(r,'prepared',return_value=False):r.reconcile(lambda:None)
+  r.command.assert_not_called();self.assertEqual(r.status()['phase'],'blocked')
