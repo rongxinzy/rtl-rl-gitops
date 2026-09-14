@@ -32,6 +32,8 @@ class Tests(unittest.TestCase):
   def fail(**kw):raise RuntimeError('PRIVATE_TEST_CREDENTIAL')
   sdk.login=fail
   with self.assertRaisesRegex(RuntimeError,'^native telemetry initialization failed$'):self.start(sdk)
+ def test_acceptance_metadata_cannot_look_like_training(self):
+  self.training['acceptance_only']=True;sdk=SDK();self.start(sdk);kw=sdk.calls[0];self.assertEqual(kw['job_type'],'backend-acceptance');self.assertTrue(kw['config']['acceptance_only']);self.assertIn('no model training',kw['description'])
  def test_real_manager_device_label(self):
   p=self.out/'settings.json';p.write_text(json.dumps({**self.meta,'device_label':'L20 GPU0'}));self.assertEqual(n.settings(p)['device_label'],'L20 GPU0')
  def test_config_rejects_credentials(self):

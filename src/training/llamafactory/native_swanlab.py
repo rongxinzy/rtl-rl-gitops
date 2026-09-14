@@ -48,7 +48,9 @@ def start(out,job_sha,meta,training,resume_step,sdk=None,key_path=KEY_PATH,proxy
   import swanlab as sdk
  if sdk.__version__!=SDK_VERSION:raise ValueError('native SDK version mismatch')
  public={k:training[k] for k in ('backend','model_revision','dataset_id','max_steps','max_length','rank','learning_rate','seed','llamafactory_commit') if k in training}
- public.update(task_type='sft',task_description='Official Qwen RTL NF4 QLoRA supervised training with independent frozen evaluation',job_id=meta['job_id'],job_sha256=job_sha,device_label=meta['device_label'],telemetry_owner='llamafactory-native')
+ acceptance=training.get('acceptance_only') is True
+ public.update(acceptance_only=acceptance,task_type='backend-acceptance' if acceptance else 'sft',task_description='Official Qwen RTL NF4 QLoRA supervised training with independent frozen evaluation',job_id=meta['job_id'],job_sha256=job_sha,device_label=meta['device_label'],telemetry_owner='llamafactory-native')
+ if acceptance:public['task_description']='CPU-only native SwanLab callback and cloud resume acceptance; synthetic metrics, no model training or capability result'
  try:
   # Neither login output nor exceptions may expose the mounted credential.
   with contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):
@@ -58,7 +60,7 @@ def start(out,job_sha,meta,training,resume_step,sdk=None,key_path=KEY_PATH,proxy
    key=Path(key_path).read_text().strip()
    if not key:raise ValueError('empty telemetry credential')
    sdk.login(api_key=key,save=False);del key
-   sdk.init(id=identity['run_id'],resume='allow',project=meta['project'],workspace=meta['workspace'],name=meta['job_id'],job_type='sft',group='rtl-llamafactory',description=public['task_description'],tags=['rtl','sft','llamafactory','official-qwen','nf4','qlora',meta['device_label']],config=public,log_dir=str(out/'swanlab'),settings=sdk.Settings(terminal={'proxy_type':'none'},probe={'hardware':True,'runtime':False,'requirements':False,'git':False,'swanlab':False,'monitor':True}),mode='online')
+   sdk.init(id=identity['run_id'],resume='allow',project=meta['project'],workspace=meta['workspace'],name=meta['job_id'],job_type=public['task_type'],group='rtl-llamafactory',description=public['task_description'],tags=['rtl','backend-acceptance' if acceptance else 'sft','llamafactory','official-qwen','nf4','qlora',meta['device_label']],config=public,log_dir=str(out/'swanlab'),settings=sdk.Settings(terminal={'proxy_type':'none'},probe={'hardware':True,'runtime':False,'requirements':False,'git':False,'swanlab':False,'monitor':True}),mode='online')
  except Exception:
   raise RuntimeError('native telemetry initialization failed') from None
  run=NativeRun(sdk,out,identity);run._status('resumed' if resume_step else 'started',resume_step);run.event('resumed' if resume_step else 'started',resume_step)
