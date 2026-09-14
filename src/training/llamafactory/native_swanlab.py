@@ -35,13 +35,15 @@ def run_identity(job_sha,meta):
  return 'lf-native-'+hashlib.sha256((meta['workspace']+'/'+meta['project']+'/'+meta['job_id']+'/'+job_sha).encode()).hexdigest()[:24]
 
 class NativeRun:
- def __init__(self,sdk,out,identity):self.sdk=sdk;self.out=out;self.identity=identity
+ def __init__(self,sdk,out,identity):self.sdk=sdk;self.out=out;self.identity=identity;self.last_step=0
  def event(self,phase,step):
   # Text originates exclusively from the finite program state machine.
   if phase not in ('started','resumed','checkpoint','paused','complete','failed'):raise ValueError('unknown telemetry event')
+  self.last_step=max(self.last_step,int(step))
   try:self.sdk.log({'lifecycle/event':self.sdk.Text(phase),'lifecycle/step':int(step)},step=int(step))
   except Exception:raise RuntimeError('native telemetry event failed') from None
  def finish(self,phase,step):
+  step=max(int(step),self.last_step)
   self.event(phase,step)
   try:self.sdk.finish(state='success' if phase=='complete' else 'aborted' if phase=='paused' else 'crashed')
   except Exception:raise RuntimeError('native telemetry finish failed') from None
