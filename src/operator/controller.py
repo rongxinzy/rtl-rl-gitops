@@ -40,6 +40,29 @@ def desired(spec, now):
     return ('Training' if within else 'Inference') if mode == 'Auto' else mode
 
 
+def force_training_due(spec, now):
+    """Deadline is relative to the current window, including its next-day tail."""
+    if not spec.get('forceTrainingAt') or spec.get('mode', 'Auto') != 'Auto':
+        return False
+    if desired(spec, now) != 'Training':
+        return False
+    def minute(value):
+        h, m = map(int, value.split(':'))
+        if not 0 <= h <= 23 or not 0 <= m <= 59:
+            raise ValueError('Invalid schedule time')
+        return h * 60 + m
+    start = minute(spec.get('trainingStart', '22:30'))
+    stop = minute(spec.get('trainingStop', '07:30'))
+    cutoff = minute(spec['forceTrainingAt'])
+    duration = (stop - start) % 1440
+    offset = (cutoff - start) % 1440
+    if duration == 0 or offset >= duration:
+        raise ValueError('Force deadline must be inside the training window')
+    local = now.astimezone(ZoneInfo(spec.get('timezone', 'Asia/Shanghai')))
+    elapsed = (local.hour * 60 + local.minute - start) % 1440
+    return elapsed >= offset
+
+
 def training_deadline(spec, now):
     if spec.get('mode', 'Auto') == 'Training':
         end = parse(spec['trainingUntil'])
@@ -111,9 +134,9 @@ class Effects:
     def router(self, method='GET', body=None):
         token = Path(os.environ.get('ROUTER_TOKEN_FILE', '/secrets/router/token')).read_text().strip()
         return request(self.spec['routerURL'].rstrip('/') + '/admin/' + ('status' if method == 'GET' else 'backend'), method, body, {'Authorization': 'Bearer ' + token})
-    def switch(self, backend):
+    def switch(self, backend, force=False):
         self.guard()
-        return self.router('PUT', {'backend': backend})
+        return self.router('PUT', {'backend': backend, **({'force': True} if force else {})})
     def probe(self, backend):
         url = self.spec[backend + 'URL'].rstrip('/')
         key = Path('/secrets/router/' + backend + '-key')
@@ -172,22 +195,51 @@ def reconcile(obj, effects, now):
         deadline = training_deadline(spec, now)
         if host.get('job_id') != spec.get('jobId'):
             return {**result, 'phase': 'BlockedJobMismatch'}
-        already_running = host.get('phase') in ('training', 'starting_training', 'training_service_active', 'training_service_activating')
+        already_running = host.get('phase') in ('training', 'starting_training', 'stopping_glm', 'training_service_active', 'training_service_activating')
+        if spec.get('mode', 'Auto') == 'Auto':
+            local = now.astimezone(ZoneInfo(spec.get('timezone', 'Asia/Shanghai')))
+            hour, minute = map(int, spec.get('trainingStart', '22:30').split(':'))
+            window_start = local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            if window_start > local:
+                window_start -= dt.timedelta(days=1)
+            # host status may report glm_ready while docker stop is pending.
+            # Only this night's durable stop marker commits the transition.
+            started = host.get('glm_stop_started')
+            committed = (host.get('glm_stop_window') == str(window_start.date())
+                         and isinstance(started, (int, float))
+                         and window_start.timestamp() <= started <= now.timestamp())
+            already_running = already_running or committed
         if not already_running and deadline - now.timestamp() < spec.get('minStartRemainingSeconds', 3600):
             result['host'] = effects.host('inference')
             if route.get('active_backend') == 'maintenance' and result['host'].get('phase') == 'glm_ready':
                 effects.switch('primary')
             return {**result, 'phase': 'TooLateToStartTraining'}
+        forced = force_training_due(spec, now)
+        if forced:
+            # Re-observe the shared router on every reconcile; persisted controller
+            # status is not authority to stop inference after a restart.
+            result['forceTraining'] = True
+            if route.get('active_backend') != 'maintenance':
+                effects.switch('maintenance', force=True)
+                return {**result, 'phase': 'ForcingMaintenance'}
+            if route.get('converged') is not True:
+                return {**result, 'phase': 'ForcingMaintenance'}
+            # The deadline explicitly permits interrupting outstanding requests.
+            # Ownership and all host-side admission checks remain authoritative.
+            result['host'] = effects.host('training', deadline)
+            return {**result, 'nightWithoutBackup': True, 'phase': 'Training' if result['host'].get('phase') == 'training' else 'StartingTraining'}
         night = desired({**spec, 'mode': 'Auto', 'trainingUntil': None}, now) == 'Training'
         if spec.get('allowNightWithoutBackup', False) and night:
             idle = route.get('business_idle_seconds', -1) >= spec.get('businessIdleSeconds', 300)
             drained = route.get('converged') is True and route.get('primary_inflight') == 0
-            if (not idle and not already_running) or not drained:
+            if not already_running and (not idle or not drained):
                 if route.get('active_backend') == 'maintenance' and not already_running and host.get('phase') == 'glm_ready':
                     effects.switch('primary')
                 return {**result, 'phase': 'WaitingForBusinessIdle'}
             if route.get('active_backend') != 'maintenance':
                 effects.switch('maintenance')
+                return {**result, 'phase': 'DrainingPrimary'}
+            if route.get('converged') is not True:
                 return {**result, 'phase': 'DrainingPrimary'}
             result['host'] = effects.host('training', deadline)
             return {**result, 'nightWithoutBackup': True, 'phase': 'Training' if result['host'].get('phase') == 'training' else 'StartingTraining'}
