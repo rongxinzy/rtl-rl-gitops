@@ -34,6 +34,10 @@ class Tests(unittest.TestCase):
   with self.assertRaisesRegex(RuntimeError,'^native telemetry initialization failed$'):self.start(sdk)
  def test_acceptance_metadata_cannot_look_like_training(self):
   self.training['acceptance_only']=True;sdk=SDK();self.start(sdk);kw=sdk.calls[0];self.assertEqual(kw['job_type'],'backend-acceptance');self.assertTrue(kw['config']['acceptance_only']);self.assertIn('no model training',kw['description'])
+ def test_actual_hardware_fields_only(self):
+  fake=types.SimpleNamespace(__version__='2.13.0',version=types.SimpleNamespace(cuda='13.0'),cuda=types.SimpleNamespace(is_available=lambda:True,device_count=lambda:1,get_device_properties=lambda i:types.SimpleNamespace(name='NVIDIA L20',total_memory=48*1024**3)))
+  with patch.dict('sys.modules',{'torch':fake}):
+   hardware=n.device_observation();self.assertEqual(hardware['visible_gpu_count'],1);self.assertEqual(hardware['visible_gpus'][0]['name'],'NVIDIA L20');self.assertEqual(hardware['cuda_version'],'13.0');self.assertEqual(n.device_observation(True)['visible_gpu_count'],0)
  def test_real_manager_device_label(self):
   p=self.out/'settings.json';p.write_text(json.dumps({**self.meta,'device_label':'L20 GPU0'}));self.assertEqual(n.settings(p)['device_label'],'L20 GPU0')
  def test_config_rejects_credentials(self):

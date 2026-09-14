@@ -18,6 +18,18 @@ def settings(path):
   if not isinstance(val,str) or not re.fullmatch(pattern,val) or val!=val.strip():raise ValueError('invalid native telemetry identity')
  return value
 
+def device_observation(acceptance=False):
+ value={'cpu_logical_count':os.cpu_count(),'visible_gpus':[],'visible_gpu_count':0}
+ if acceptance:return value
+ try:
+  import torch
+  value.update(torch_version=torch.__version__,cuda_version=torch.version.cuda)
+  if torch.cuda.is_available():
+   value['visible_gpu_count']=torch.cuda.device_count()
+   value['visible_gpus']=[{'index':i,'name':torch.cuda.get_device_properties(i).name,'memory_total_bytes':torch.cuda.get_device_properties(i).total_memory} for i in range(torch.cuda.device_count())]
+ except ImportError:pass
+ return value
+
 def run_identity(job_sha,meta):
  if not re.fullmatch('[0-9a-f]{64}',job_sha):raise ValueError('invalid job binding')
  return 'lf-native-'+hashlib.sha256((meta['workspace']+'/'+meta['project']+'/'+meta['job_id']+'/'+job_sha).encode()).hexdigest()[:24]
@@ -53,7 +65,7 @@ def start(out,job_sha,meta,training,resume_step,sdk=None,key_path=KEY_PATH,proxy
  if isinstance(cfg,dict):
   public['training_config']={k:cfg[k] for k in ('template','finetuning_type','per_device_train_batch_size','gradient_accumulation_steps','learning_rate','lr_scheduler_type','optim','lora_rank','lora_alpha','lora_dropout','lora_target','bf16','quantization_bit','quantization_method','quantization_type','double_quantization','gradient_checkpointing','save_steps','seed') if k in cfg}
  acceptance=training.get('acceptance_only') is True
- public.update(acceptance_only=acceptance,task_type='backend-acceptance' if acceptance else 'sft',task_description='Official Qwen RTL NF4 QLoRA supervised training with independent frozen evaluation',job_id=meta['job_id'],job_sha256=job_sha,device_label=meta['device_label'],telemetry_owner='llamafactory-native')
+ public.update(device_observation=device_observation(acceptance),acceptance_only=acceptance,task_type='backend-acceptance' if acceptance else 'sft',task_description='Official Qwen RTL NF4 QLoRA supervised training with independent frozen evaluation',job_id=meta['job_id'],job_sha256=job_sha,device_label=meta['device_label'],telemetry_owner='llamafactory-native')
  if acceptance:public['task_description']='CPU-only native SwanLab callback and cloud resume acceptance; synthetic metrics, no model training or capability result'
  try:
   # Neither login output nor exceptions may expose the mounted credential.
