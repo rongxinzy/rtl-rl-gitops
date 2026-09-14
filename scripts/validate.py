@@ -21,3 +21,11 @@ print(json.dumps({'valid':True,'static_resources':count}))
 transport=json.loads((ROOT/"clusters/lab/argocd/resources.json").read_text())
 embedded=next(x for x in transport["items"] if x["kind"]=="ConfigMap" and x["metadata"]["name"]=="argocd-git-transport")["data"]["git"]
 assert embedded==(ROOT/"src/infrastructure/argocd/git-transport.sh").read_text(), "transport source and ConfigMap differ"
+
+# Both control layers must enforce the same automatic-night deadline.
+resources=json.loads((ROOT/'clusters/lab/rtl-system/resources.json').read_text())['items']
+night=next(x['spec'] for x in resources if x['kind']=='InferenceSchedule')
+router=next(x for x in resources if x['kind']=='Deployment' and x['metadata']['name']=='glm-router')
+env={x['name']:x.get('value') for x in router['spec']['template']['spec']['containers'][0]['env']}
+for spec_key,env_key in [('forceTrainingAt','FORCE_TRAINING_AT'),('trainingStart','BACKGROUND_NIGHT_START'),('trainingStop','BACKGROUND_NIGHT_END'),('timezone','SCHEDULE_TIMEZONE')]:
+ assert night[spec_key]==env[env_key], ('night_policy_mismatch',spec_key)

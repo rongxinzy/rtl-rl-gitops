@@ -206,9 +206,25 @@
                   {
                     "name": "NAMESPACE",
                     "value": "rtl-system"
+                  },
+                  {
+                    "name": "FORCE_TRAINING_AT",
+                    "value": "23:30"
+                  },
+                  {
+                    "name": "BACKGROUND_NIGHT_START",
+                    "value": "22:30"
+                  },
+                  {
+                    "name": "BACKGROUND_NIGHT_END",
+                    "value": "07:30"
+                  },
+                  {
+                    "name": "SCHEDULE_TIMEZONE",
+                    "value": "Asia/Shanghai"
                   }
                 ],
-                "image": "docker.io/library/rtl-router@sha256:c7c35c7fab40bc780eeb9c3d005cf4820c467dfe302229151586580587fa9ef3",
+                "image": "docker.io/library/rtl-router@sha256:1a4c3cf666d6b1db960d9104ff7e8a8c590942733aecfad512e57cc233f925bd",
                 "imagePullPolicy": "Never",
                 "lifecycle": {
                   "preStop": {
@@ -389,7 +405,7 @@
                     }
                   }
                 ],
-                "image": "docker.io/library/rtl-operator@sha256:e82e9a76e1f85625ea5bcd4e60341adcb0420ae358d662773d8836726f956fc8",
+                "image": "docker.io/library/rtl-operator@sha256:3f1551b4053fb79e5f744e7aefd18af9e5f8e6d0942a8153a820cf961763d472",
                 "imagePullPolicy": "Never",
                 "name": "controller",
                 "resources": {
@@ -986,6 +1002,12 @@
                       "trainingUntil": {
                         "format": "date-time",
                         "type": "string"
+                      },
+                      "forceTrainingAt": {
+                        "type": "string",
+                        "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+                        "maxLength": 5,
+                        "description": "Optional automatic-night deadline to interrupt primary inference after routing to maintenance."
                       }
                     },
                     "required": [
@@ -1036,7 +1058,8 @@
         "timezone": "Asia/Shanghai",
         "trainingStart": "22:30",
         "trainingStop": "07:30",
-        "jobId": "grpo-night-20260913-v1"
+        "jobId": "grpo-night-20260913-v1",
+        "forceTrainingAt": "23:30"
       }
     }
   ]

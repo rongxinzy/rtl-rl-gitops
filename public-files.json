@@ -73,6 +73,7 @@
   "src/infrastructure/tekton/runtime/task.py",
   "src/operator/Dockerfile",
   "src/operator/controller.py",
+  "src/operator/test_controller.py",
   "src/research/brain/Dockerfile",
   "src/research/brain/guardian.py",
   "src/research/brain/loop.py",
