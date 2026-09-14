@@ -1,0 +1,7 @@
+ARG BASE_IMAGE=rtl-l20-llamafactory:20260913-100e9a4
+FROM ${BASE_IMAGE}
+COPY requirements-swanlab.txt /opt/llamafactory/requirements-swanlab.txt
+COPY native-wheels /tmp/native-wheels
+RUN python3 -m pip install --no-index --no-build-isolation --no-deps --find-links=/tmp/native-wheels -r /opt/llamafactory/requirements-swanlab.txt \
+    && python3 -m pip check \
+    && rm -rf /tmp/native-wheels
