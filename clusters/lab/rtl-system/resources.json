@@ -1059,6 +1059,170 @@
       }
     },
     {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "litellm-config",
+        "namespace": "rtl-system"
+      },
+      "data": {
+        "config.yaml": "model_list:\n  - model_name: GLM-5.3-Flash\n    litellm_params:\n      model: openai/GLM-5.3-Flash\n      api_base: http://172.18.4.199:30000/v1\n      api_key: os.environ/PRIMARY_KEY\nlitellm_settings:\n  request_timeout: 300\n  stream_timeout: 600\n  drop_params: true\ngeneral_settings:\n  master_key: os.environ/MASTER_KEY\n"
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "litellm",
+        "namespace": "rtl-system"
+      },
+      "spec": {
+        "replicas": 2,
+        "selector": {
+          "matchLabels": {
+            "app": "litellm"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "litellm"
+            }
+          },
+          "spec": {
+            "affinity": {
+              "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                  "nodeSelectorTerms": [
+                    {
+                      "matchExpressions": [
+                        {
+                          "key": "kubernetes.io/hostname",
+                          "operator": "In",
+                          "values": [
+                            "rtl-control",
+                            "rtl-pro6000d"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "podAntiAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": [
+                  {
+                    "labelSelector": {
+                      "matchLabels": {
+                        "app": "litellm"
+                      }
+                    },
+                    "topologyKey": "kubernetes.io/hostname"
+                  }
+                ]
+              }
+            },
+            "containers": [
+              {
+                "name": "litellm",
+                "image": "docker.1ms.run/litellm/litellm@sha256:d85c0b36e2fdd64719e7fc2692431cd5aee0814925e96c2892d1491b13189c23",
+                "imagePullPolicy": "IfNotPresent",
+                "args": [
+                  "--config",
+                  "/etc/litellm/config.yaml",
+                  "--port",
+                  "4000"
+                ],
+                "env": [
+                  {
+                    "name": "MASTER_KEY",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "rtl-router-admin",
+                        "key": "key"
+                      }
+                    }
+                  },
+                  {
+                    "name": "PRIMARY_KEY",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "rtl-router-admin",
+                        "key": "primary-key"
+                      }
+                    }
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 4000
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "config",
+                    "mountPath": "/etc/litellm/config.yaml",
+                    "subPath": "config.yaml"
+                  }
+                ],
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/health/liveness",
+                    "port": 4000
+                  },
+                  "initialDelaySeconds": 30,
+                  "periodSeconds": 30
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/health/liveness",
+                    "port": 4000
+                  },
+                  "initialDelaySeconds": 10,
+                  "periodSeconds": 10
+                },
+                "resources": {
+                  "requests": {
+                    "memory": "256Mi"
+                  },
+                  "limits": {
+                    "memory": "1Gi"
+                  }
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "config",
+                "configMap": {
+                  "name": "litellm-config"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "litellm",
+        "namespace": "rtl-system"
+      },
+      "spec": {
+        "selector": {
+          "app": "litellm"
+        },
+        "ports": [
+          {
+            "port": 4000,
+            "targetPort": 4000
+          }
+        ]
+      }
+    },
+    {
       "apiVersion": "rtl.rongxin.ai/v1alpha1",
       "kind": "InferenceSchedule",
       "metadata": {
