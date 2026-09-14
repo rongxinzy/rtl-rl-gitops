@@ -15,6 +15,12 @@ class FakeEffects:
         self.route.update(route)
         self.calls = []
         self.backup = False
+        self.l20_state = dict(requested_role='training', ready=False, phase='training')
+    def l20(self, role=None):
+        self.calls.append(('l20', role))
+        if role:
+            self.l20_state.update(requested_role=role, ready=False)
+        return dict(self.l20_state)
     def host(self, action, deadline=None):
         self.calls.append(('host', action, deadline))
         return dict(self.host_state)
@@ -137,4 +143,86 @@ class ReconcileTests(unittest.TestCase):
         self.assertTrue(any(c[:2]==('host','inference') for c in e.calls))
         self.assertFalse(any(c[:2]==('host','training') for c in e.calls))
 
+class RotationTests(unittest.TestCase):
+    def run_at(self, clock, effects=None, changes=None, day=14):
+        return ReconcileTests.run_at(self, clock, effects, changes, day)
+    def rotated(self, clock, e=None, day=14, **changes):
+        return self.run_at(clock, e, {'rotateL20':True, **changes}, day)
+    def ready(self, **route):
+        e=FakeEffects(**route);e.backup=True
+        e.l20_state.update(requested_role='inference',ready=True)
+        return e
+    def test_prepare_keeps_primary_and_restores_if_needed(self):
+        for phase in ['glm_ready','stopping_glm']:
+            e=FakeEffects(phase)
+            result,e=self.rotated('22:00',e)
+            self.assertIn(('l20','inference'),e.calls)
+            self.assertIn(('host','inference'),[c[:2] for c in e.calls])
+            self.assertNotIn(('host','training'),[c[:2] for c in e.calls])
+    def test_preparation_midnight_window(self):
+        for clock,day,expected in [('21:59',14,False),('22:00',14,True),('00:01',15,True),('07:30',15,False)]:
+            self.assertEqual(controller.backup_window(obj()['spec'],now(clock,day)),expected)
+    def test_before_prepare_does_not_take_l20(self):
+        _,e=self.rotated('21:59',FakeEffects(backup_inflight=0))
+        self.assertFalse(any(c[0]=='l20' and c[1] for c in e.calls))
+    def test_idle_rotation_and_drain(self):
+        e=self.ready(primary_inflight=0,business_idle_seconds=300)
+        result,e=self.rotated('22:30',e)
+        self.assertIn(('switch','backup',False),e.calls)
+        e.route.update(active_backend='backup',converged=True)
+        result,e=self.rotated('22:30',e)
+        self.assertIn(('host','training'),[c[:2] for c in e.calls])
+    def test_busy_wait_then_force_backup(self):
+        e=self.ready()
+        result,e=self.rotated('23:29',e)
+        self.assertEqual(result['phase'],'WaitingForBusinessIdle')
+        result,e=self.rotated('23:30',e)
+        self.assertIn(('switch','backup',False),e.calls)
+        e.calls=[];e.route.update(active_backend='backup',converged=False)
+        self.rotated('23:30',e)
+        self.assertNotIn(('host','training'),[c[:2] for c in e.calls])
+        e.route['converged']=True
+        self.rotated('23:30',e)
+        self.assertIn(('host','training'),[c[:2] for c in e.calls])
+    def test_backup_failure_explicit_and_forced_maintenance(self):
+        e=self.ready();e.backup=False
+        result,e=self.rotated('23:29',e)
+        self.assertEqual(result['phase'],'BlockedBackupNotReady')
+        result,e=self.rotated('23:30',e)
+        self.assertTrue(result['fallbackUnavailable'])
+        self.assertIn(('switch','maintenance',True),e.calls)
+        e.route.update(active_backend='maintenance')
+        result,e=self.rotated('00:01',e,day=15)
+        self.assertTrue(result['fallbackUnavailable'])
+        self.assertIn(('host','training'),[c[:2] for c in e.calls])
+    def test_morning_order(self):
+        e=self.ready(active_backend='backup',backup_inflight=4)
+        e.host_state['phase']='training'
+        self.rotated('07:30',e,day=15)
+        self.assertNotIn(('l20','training'),e.calls)
+        e.host_state['phase']='glm_ready';e.calls=[]
+        self.rotated('07:30',e,day=15)
+        self.assertIn(('switch','primary',False),e.calls)
+        self.assertNotIn(('l20','training'),e.calls)
+        e.route.update(active_backend='primary',converged=False,backup_inflight=0)
+        self.rotated('07:30',e,day=15)
+        self.assertNotIn(('l20','training'),e.calls)
+        e.route.update(converged=True,backup_inflight=1)
+        self.rotated('07:30',e,day=15)
+        self.assertNotIn(('l20','training'),e.calls)
+        e.route['backup_inflight']=0
+        self.rotated('07:30',e,day=15)
+        self.assertIn(('l20','training'),e.calls)
+        e.calls=[];self.rotated('07:30',e,day=15)
+        self.assertNotIn(('l20','training'),e.calls)
+    def test_no_writes_for_observe_suspend_or_manual_inference(self):
+        for changes in [{'suspend':True},{'controlMode':'Observe'},{'mode':'Inference'}]:
+            _,e=self.rotated('23:30',**changes)
+            self.assertFalse(any(c[0]=='l20' and c[1] for c in e.calls))
+    def test_completed_training_keeps_night_backup(self):
+        e=self.ready(active_backend='backup');e.host_state['idle_after_completion']=True
+        _,e=self.rotated('01:00',e,day=15)
+        self.assertNotIn(('l20','training'),e.calls)
+
 if __name__=='__main__':unittest.main()
+

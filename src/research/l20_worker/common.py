@@ -83,6 +83,8 @@ def admit(body):
  return {'status':'admitted','job_id':ident}
 
 def status():
+ try:from . import rotation
+ except ImportError:import rotation
  rows=[]
  for folder in sorted((ROOT/'jobs').glob('l20-*'),key=lambda p:p.stat().st_mtime):
   try:
@@ -90,7 +92,7 @@ def status():
    binding=json.loads((folder/'phase-control.json').read_text()) if (folder/'phase-control.json').exists() else {}
    rows.append({'job_id':folder.name,'orchestrator':job.get('orchestrator','legacy'),'run_uid':binding.get('run_uid'),**{k:job[k] for k in ('dataset_id','freeze_id','max_steps')},**state})
   except (OSError,ValueError,KeyError):continue
- return {'enabled':(ROOT/'enabled').exists(),'paused':(ROOT/'pause').exists(),'jobs':rows[-20:],'current_job':rows[-1] if rows else None}
+ return {'rotation':rotation.status(),'enabled':(ROOT/'enabled').exists(),'paused':(ROOT/'pause').exists(),'jobs':rows[-20:],'current_job':rows[-1] if rows else None}
 
 
 def compare_complete(folder,body):

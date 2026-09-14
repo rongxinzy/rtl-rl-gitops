@@ -21,7 +21,7 @@ def manifest(job):
     return {'apiVersion':'tekton.dev/v1','kind':'PipelineRun','metadata':{'name':'rtl-'+job,'namespace':NAMESPACE,
             'labels':{'rtl.ai/managed-by':'tekton-bridge','rtl.ai/job':job}},
             'spec':{'pipelineRef':{'name':PIPELINE},'params':[{'name':'job-id','value':job}],
-                    'timeouts':{'pipeline':'2h0m0s','tasks':'1h50m0s','finally':'5m0s'},
+                    'timeouts':{'pipeline':'18h0m0s','tasks':'17h50m0s','finally':'5m0s'},
                     'taskRunTemplate':{'serviceAccountName':'rtl-experiment','podTemplate':{'nodeSelector':{'kubernetes.io/hostname':'rtl-control'},'securityContext':{'fsGroup':65532,'runAsUser':65532,'runAsGroup':65532,'runAsNonRoot':True,'seccompProfile':{'type':'RuntimeDefault'}}}}}}
 
 def reconcile():

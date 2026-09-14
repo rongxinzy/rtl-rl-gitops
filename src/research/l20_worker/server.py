@@ -5,11 +5,11 @@ from pathlib import Path
 try:
  from .common import ROOT,ID,admit,status,atomic,sha,canonical,LOCK,compare_complete
  from .artifacts import verify_all,adapter_digest
- from . import manager,phase_control
+ from . import manager,phase_control,rotation
 except ImportError:
  from common import ROOT,ID,admit,status,atomic,sha,canonical,LOCK,compare_complete
  from artifacts import verify_all,adapter_digest
- import manager,phase_control
+ import manager,phase_control,rotation
 class Handler(BaseHTTPRequestHandler):
  token=None
  def setup(self):
@@ -24,6 +24,7 @@ class Handler(BaseHTTPRequestHandler):
   finally:LOCK.release()
  def get_locked(self):
   if not self.auth():return self.reply(401,{'error':'unauthorized'})
+  if self.path=='/rotation/status':return self.reply(200,rotation.status())
   if self.path=='/status':return self.reply(200,status())
   parts=self.path.strip('/').split('/')
   if len(parts)==3 and parts[0]=='jobs' and ID.fullmatch(parts[1]) and parts[2]=='status':
@@ -55,6 +56,7 @@ class Handler(BaseHTTPRequestHandler):
    self.connection.settimeout(10);body=json.loads(self.rfile.read(length))
    if not LOCK.acquire(timeout=1):return self.reply(503,{'error':'worker_busy'})
    try:
+    if self.path=='/rotation':return self.reply(200,rotation.request(body))
     if self.path=='/jobs':return self.reply(200,admit(body))
     parts=self.path.strip('/').split('/')
     if len(parts)==3 and parts[0]=='jobs' and ID.fullmatch(parts[1]) and parts[2]=='abort':

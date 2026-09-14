@@ -164,7 +164,7 @@ class Tests(unittest.TestCase):
  def test_global_status_exposes_bound_run(self):
   job=json.loads((self.folder/'job.json').read_text());job.update(dataset_id='d',freeze_id='f',max_steps=20);c.atomic(self.folder/'job.json',job)
   self.grant('baseline')
-  with patch.object(c,'ROOT',self.root),patch.object(c,'config',return_value={}):result=c.status()
+  with patch.object(c,'ROOT',self.root),patch.object(c,'config',return_value={}),patch.object(m.rotation,'ROOT',self.root),patch.object(m.rotation,'config',return_value={}):result=c.status()
   self.assertEqual(result['jobs'][0]['run_uid'],UID)
 if __name__=='__main__':unittest.main()
 
