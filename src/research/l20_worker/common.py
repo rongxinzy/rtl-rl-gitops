@@ -27,6 +27,8 @@ def validate(body):
  for row in rows:
   if row.get('split')!='train' or row.get('validation_level') not in ('Q2','K1-grounded'):raise ValueError('only trusted train split')
   if row['validation_level']=='K1-grounded' and (row.get('kind') not in ('explain','predict','repair') or any(not isinstance(row.get(k),str) or not HEX.fullmatch(row[k]) for k in ('knowledge_evidence_sha256','knowledge_source_sha256'))):raise ValueError('knowledge evidence missing')
+ if any(not isinstance(row.get('family_id'),str) or not row['family_id'].strip() or row['family_id']!=row['family_id'].strip() for row in rows):raise ValueError('verified nonempty family_id required')
+ if len({row['family_id'] for row in rows})<2:raise ValueError('at least two verified training families required')
  prompts=[json.loads(x) for x in body['prompts'].splitlines() if x.strip()]
  if len(prompts)!=3 or len({x['task_id'] for x in prompts})!=3 or any(set(x)!={'task_id','spec'} for x in prompts):raise ValueError('three prompt-only evaluation rows required')
  if {x['task_id'] for x in rows}&{x['task_id'] for x in prompts}:raise ValueError('evaluation overlap')
