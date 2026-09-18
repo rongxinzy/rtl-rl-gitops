@@ -248,7 +248,7 @@
                     }
                   }
                 ],
-                "image": "docker.io/calciumion/new-api:rtl-pinned-rc36",
+                "image": "docker.io/calciumion/new-api:rtl-pinned-main-9e905a8",
                 "imagePullPolicy": "Never",
                 "livenessProbe": {
                   "failureThreshold": 3,
@@ -397,7 +397,7 @@
                     }
                   }
                 ],
-                "image": "docker.io/calciumion/new-api:rtl-pinned-rc36",
+                "image": "docker.io/calciumion/new-api:rtl-pinned-main-9e905a8",
                 "imagePullPolicy": "Never",
                 "livenessProbe": {
                   "failureThreshold": 3,
