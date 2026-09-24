@@ -65,6 +65,16 @@
       "source": "services/rtl-judge.service",
       "file": "sources/services/rtl-judge.service",
       "sha256": "4d13212a17b7415418eef7ca6da8ecf7d30dea657598ff287ba9c26463c2ec1e"
+    },
+    {
+      "source": "infrastructure/storage/mnt-models.mount",
+      "file": "sources/infrastructure/storage/mnt-models.mount",
+      "sha256": "09b31c42ac20f7566204705e54be7ba8fe4fabbb189f4c646c0d04fd4be747f1"
+    },
+    {
+      "source": "infrastructure/storage/mnt-models.automount",
+      "file": "sources/infrastructure/storage/mnt-models.automount",
+      "sha256": "867e906131dfab098690dbda07d6ef4c500a54eae47c17d7e392ce56159f8eed"
     }
   ]
 }

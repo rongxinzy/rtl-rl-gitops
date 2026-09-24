@@ -1,0 +1,10 @@
+[Unit]
+Description=Read-only shared model store
+Wants=network-online.target
+After=network-online.target
+
+[Mount]
+What=172.18.5.249:/volume1/models
+Where=/mnt/models
+Type=nfs4
+Options=ro,nosuid,nodev,_netdev,hard,timeo=50,retrans=2

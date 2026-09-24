@@ -26,6 +26,8 @@
   "host/sources/infrastructure/k3s/pro6000d.yaml",
   "host/sources/infrastructure/k3s/rtl-k3s-network.service",
   "host/sources/infrastructure/k3s/server.yaml",
+  "host/sources/infrastructure/storage/mnt-models.automount",
+  "host/sources/infrastructure/storage/mnt-models.mount",
   "host/sources/infrastructure/new-api/data_bridge.py",
   "host/sources/infrastructure/new-api/new-api-data-bridge.service",
   "host/sources/research/executor/rtl-research-executor.service",

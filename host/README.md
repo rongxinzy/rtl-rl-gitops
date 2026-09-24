@@ -8,6 +8,8 @@
 - rtl-pro6000d / 172.18.4.199：8卡GPU，全天提供GLM推理、Agent与教师造数；不承接训练。GPU Docker归宿主调度，K3s不能绕过资源门禁。
 - rtl-l20 / 172.18.5.123：2卡L20，全天训练研究与学生模型评估；不承接GLM备用。checkpoint、缓存与训练产物放在`/mnt/data`，官方模型权重由只读模型存储提供。不得依据GPU低利用率终止服务。
 
+L20 的官方模型源通过 `mnt-models.automount` 按需只读挂载到 `/mnt/models`（NAS `172.18.5.249:/volume1/models`）；训练缓存、检查点和生成产物仍写入本机 `/mnt/data`。首次访问前确认 NAS 网络与挂载状态。
+
 K3s固定 `v1.36.4+k3s1`，实测runtime containerd `2.3.4-k3s1.36`。样本配置保留实际node名/IP/接口、Pod10.42/16、Service10.43/16、Traefik/ServiceLB禁用、GPU节点external taint。部署前核实网卡与现有配置，不能把样本直接覆盖运行节点。现有Docker与K3s containerd相互独立；不安装GPU Operator来抢占Docker设备。
 
 ## 安全身份预置
@@ -28,6 +30,7 @@ join-token、server-token、kubeconfig、SSH私钥、worker/executor API key、N
 `source-manifest.json`给出13个逐文件SHA256，来自RTL_RL本地受审查代码，未声称是当前主机全部drop-in的导出。`sources/`保持原相对路径方便审查：
 
 - k3s三份配置样本、网络防护脚本及unit。
+- `/mnt/models`只读NFS mount/automount单元；不得在共享权重源写checkpoint或缓存。
 - NewAPI data_bridge.py及unit，固定现有Docker网络与容器名，私网15432/16379。数据库原卷/用户/密码/备份必须外部恢复完成，bridge不创建数据库、不做schema迁移。原入口hostPort3000属于K8s ingress，不能另起旧Docker new-api争用。
 - executor、L20 worker、night training/reconcile及timer、judge unit。ExecStart所需完整Python包由仓库`src/`另行提供，部署者必须按unit固定路径安装并检查依赖；此目录不是完整运行包。
 - judge unit内bootstrap-v2 registry是原样来源默认值，实际registry由受控job/drop-in绑定；本仓库不含训练数据/registry。不得直接启用缺少真实来源验证的judge。
