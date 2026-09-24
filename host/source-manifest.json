@@ -19,7 +19,7 @@
     {
       "source": "infrastructure/k3s/guard-network.sh",
       "file": "sources/infrastructure/k3s/guard-network.sh",
-      "sha256": "46ea21ec1b85e3f33304a258136133e3e7d10897ecfb7be8e9178f276c8db51d"
+      "sha256": "73684ea161e3a3bb04cd15044c160522f2a6870ea7883d4f09b5dc870f8e35e3"
     },
     {
       "source": "infrastructure/k3s/rtl-k3s-network.service",
