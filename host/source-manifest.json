@@ -9,7 +9,7 @@
     {
       "source": "infrastructure/k3s/l20.yaml",
       "file": "sources/infrastructure/k3s/l20.yaml",
-      "sha256": "757dafd06b79e9ce821041d6c98af5964ce95b70568fb332e092741f65049816"
+      "sha256": "1d963826464c061d1286556876367b51b08f60131d2798880ea78251d44c8bf3"
     },
     {
       "source": "infrastructure/k3s/pro6000d.yaml",
@@ -19,7 +19,7 @@
     {
       "source": "infrastructure/k3s/guard-network.sh",
       "file": "sources/infrastructure/k3s/guard-network.sh",
-      "sha256": "e9cfb88b11927c6fea6460f3e022a8bb63b04b6e167312f7d75fdf9fa1a0bc2a"
+      "sha256": "46ea21ec1b85e3f33304a258136133e3e7d10897ecfb7be8e9178f276c8db51d"
     },
     {
       "source": "infrastructure/k3s/rtl-k3s-network.service",
@@ -29,7 +29,7 @@
     {
       "source": "infrastructure/new-api/data_bridge.py",
       "file": "sources/infrastructure/new-api/data_bridge.py",
-      "sha256": "8ef4ffdb510e4488e105b53364b92f2a3597135d88df265ae268a0860d89afb4"
+      "sha256": "79698bf2232cddcc6930b04b401bb11a171696d67b6cb78e1a1dba29e76f1177"
     },
     {
       "source": "infrastructure/new-api/new-api-data-bridge.service",

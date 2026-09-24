@@ -6,7 +6,7 @@
 
 - rtl-control / 172.18.5.188：单 K3s 控制面，New API 入口与既有 Docker PostgreSQL/Redis、DB私网bridge；不是控制面或存储HA。
 - rtl-pro6000d / 172.18.4.199：8卡GPU，日间生产GLM、夜间训练、受限executor/judge。GPU Docker归宿主调度，K3s不能绕过资源门禁。
-- rtl-l20 / 172.18.6.123：2卡L20，持久worker API与独立实验；模型与checkpoint在/mnt/data。不得依据GPU低利用率终止服务。
+- rtl-l20 / 172.18.5.123：2卡L20，持久worker API与独立实验；模型与checkpoint在/mnt/data。不得依据GPU低利用率终止服务。
 
 K3s固定 `v1.36.4+k3s1`，实测runtime containerd `2.3.4-k3s1.36`。样本配置保留实际node名/IP/接口、Pod10.42/16、Service10.43/16、Traefik/ServiceLB禁用、GPU节点external taint。部署前核实网卡与现有配置，不能把样本直接覆盖运行节点。现有Docker与K3s containerd相互独立；不安装GPU Operator来抢占Docker设备。
 

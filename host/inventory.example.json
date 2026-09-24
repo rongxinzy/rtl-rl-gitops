@@ -15,7 +15,7 @@
     },
     {
       "name": "rtl-l20",
-      "address": "172.18.6.123",
+      "address": "172.18.5.123",
       "role": "l20-gpu",
       "interface": "enp6s0"
     }

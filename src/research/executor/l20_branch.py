@@ -10,7 +10,7 @@ JOB_ID=re.compile(r'^l20-[0-9a-f]{24}$')
 
 def call(executor,path,body=None):
  token=(executor.root/'secrets/l20-worker-token').read_text().strip()
- req=urllib.request.Request('http://172.18.6.123:18766'+path,data=json.dumps(body).encode() if body is not None else None,headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
+ req=urllib.request.Request('http://172.18.5.123:18766'+path,data=json.dumps(body).encode() if body is not None else None,headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
  with OPENER.open(req,timeout=3 if path=='/status' else 15) as response:
   raw=response.read(8*1024*1024+1)
   if len(raw)>8*1024*1024:raise ValueError('oversize worker response')
