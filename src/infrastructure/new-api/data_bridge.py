@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Temporary, source-restricted bridge to existing Docker PostgreSQL/Redis."""
 import asyncio, ipaddress, json
-ALLOW = [ipaddress.ip_network(x) for x in ['10.42.0.0/16','172.18.5.188/32','172.18.6.123/32','172.18.4.199/32','127.0.0.1/32']]
+ALLOW = [ipaddress.ip_network(x) for x in ['10.42.0.0/16','172.18.5.188/32','172.18.5.123/32','172.18.4.199/32','127.0.0.1/32']]
 ACTIVE=0
 async def handle(reader, writer, container, port):
     global ACTIVE

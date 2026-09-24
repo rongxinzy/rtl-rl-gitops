@@ -1,7 +1,7 @@
 server: https://172.18.5.188:6443
 token-file: /etc/rancher/k3s/join-token
 node-name: rtl-l20
-node-ip: 172.18.6.123
+node-ip: 172.18.5.123
 flannel-iface: enp6s0
 kubelet-arg:
   - fail-swap-on=false

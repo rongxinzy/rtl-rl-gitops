@@ -1,6 +1,6 @@
 """Narrow host-network WireGuard egress: explicit tables, never host default route."""
 import concurrent.futures, ipaddress, json, os, pathlib, subprocess, sys, time
-PODS='10.42.3.0/24'; NODE='172.18.6.123'; STATE=pathlib.Path('/tmp/egress-state.json')
+PODS='10.42.3.0/24'; NODE='172.18.5.123'; STATE=pathlib.Path('/tmp/egress-state.json')
 PRIVATE=['0.0.0.0/8','10.0.0.0/8','100.64.0.0/10','127.0.0.0/8','169.254.0.0/16','172.16.0.0/12','192.168.0.0/16','224.0.0.0/4','240.0.0.0/4']
 PROBE_CODES={}
 GATEWAYS={'primary':{'iface':'wg-rtl-eg0','server':'172.18.5.188','port':51822,'net':'10.254.199','table':201,'return_table':299,'mark':'0x0e990000'},'backup':{'iface':'wg-rtl-eg1','server':'172.18.4.199','port':51823,'net':'10.254.198','table':202,'return_table':298,'mark':'0x0e980000'}}

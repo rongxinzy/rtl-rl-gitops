@@ -4,7 +4,7 @@ import http.client,hmac,json,os
 from pathlib import Path
 import urllib.request
 KEY=Path('/secrets/backup-key').read_text().strip()
-ENGINE='http://172.18.6.123:18001'
+ENGINE='http://172.18.5.123:18001'
 def accepted():
  try:
   doc=json.loads(Path('/readiness/READY.json').read_text())
@@ -37,7 +37,7 @@ class Handler(BaseHTTPRequestHandler):
    if not 0<=n<=16*1024*1024:raise ValueError('request too large')
    body=self.rfile.read(n) if self.command=='POST' else None
    if body is not None and len(body)!=n:raise ValueError('short request body')
-   up=http.client.HTTPConnection('172.18.6.123',18001,timeout=300)
+   up=http.client.HTTPConnection('172.18.5.123',18001,timeout=300)
    headers={'Authorization':'Bearer '+KEY,'Content-Type':self.headers.get('Content-Type','application/json'),'Accept-Encoding':'identity'}
    up.request(self.command,self.path,body=body,headers=headers);r=up.getresponse()
    self.send_response(r.status);self.send_header('Content-Type',r.getheader('Content-Type','application/json'));self.send_header('Connection','close');self.end_headers();sent=True;self.close_connection=True

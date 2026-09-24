@@ -13,7 +13,7 @@ def pull_l20():
     result = subprocess.run(['ssh', '-T', '-i', '/root/rtl-rl/secrets/metrics_ssh',
         '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8',
         '-o', 'StrictHostKeyChecking=yes', '-o', 'UserKnownHostsFile=/root/rtl-rl/secrets/metrics_known_hosts',
-        'root@172.18.6.123'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=25)
+        'root@172.18.5.123'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=25)
     if result.returncode or len(result.stdout) > 8 * 1024 * 1024:
         raise ValueError('scalar_source_unavailable')
     data = json.loads(result.stdout)

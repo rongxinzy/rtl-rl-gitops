@@ -8,7 +8,7 @@ import urllib.request
 JOB = re.compile(r'^l20-[0-9a-f]{24}$')
 UID = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
 HEX = re.compile(r'^[0-9a-f]{64}$')
-WORKER = 'http://172.18.6.123:18766'
+WORKER = 'http://172.18.5.123:18766'
 EXECUTOR = 'http://172.18.4.199:18765'
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):

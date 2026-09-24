@@ -165,7 +165,7 @@ class Effects:
                 raise ValueError('Unsupported L20 role')
             self.guard()
         token = Path('/secrets/l20/token').read_text().strip()
-        return request('http://172.18.6.123:18766/rotation' + ('/status' if role is None else ''),
+        return request('http://172.18.5.123:18766/rotation' + ('/status' if role is None else ''),
                        'GET' if role is None else 'POST', None if role is None else {'role': role},
                        {'Authorization': 'Bearer ' + token}, timeout=8)
     def host(self, action, deadline=None):
