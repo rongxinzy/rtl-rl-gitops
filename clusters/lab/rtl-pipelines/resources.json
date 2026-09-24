@@ -34,7 +34,7 @@
                   "python3",
                   "/app/bridge.py"
                 ],
-                "image": "docker.io/library/rtl-tekton-runtime@sha256:9aa27f1dbc820d6cc64bd6c19f623f344e87d0d05dafbe479b06763085d6afa0",
+                "image": "docker.io/library/rtl-tekton-runtime@sha256:52c0105cf588d03cae178fe5c96810b552dfdeee5a8ef4191d7e52f9e2dbe264",
                 "imagePullPolicy": "Never",
                 "name": "bridge",
                 "resources": {
@@ -361,7 +361,7 @@
                 "memory": "48Mi"
               }
             },
-            "image": "docker.io/library/rtl-tekton-runtime@sha256:9aa27f1dbc820d6cc64bd6c19f623f344e87d0d05dafbe479b06763085d6afa0",
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:52c0105cf588d03cae178fe5c96810b552dfdeee5a8ef4191d7e52f9e2dbe264",
             "imagePullPolicy": "Never",
             "name": "execute",
             "securityContext": {
@@ -446,7 +446,7 @@
                 "memory": "48Mi"
               }
             },
-            "image": "docker.io/library/rtl-tekton-runtime@sha256:9aa27f1dbc820d6cc64bd6c19f623f344e87d0d05dafbe479b06763085d6afa0",
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:52c0105cf588d03cae178fe5c96810b552dfdeee5a8ef4191d7e52f9e2dbe264",
             "imagePullPolicy": "Never",
             "name": "execute",
             "securityContext": {
@@ -535,7 +535,7 @@
                 "memory": "48Mi"
               }
             },
-            "image": "docker.io/library/rtl-tekton-runtime@sha256:9aa27f1dbc820d6cc64bd6c19f623f344e87d0d05dafbe479b06763085d6afa0",
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:52c0105cf588d03cae178fe5c96810b552dfdeee5a8ef4191d7e52f9e2dbe264",
             "imagePullPolicy": "Never",
             "name": "execute",
             "securityContext": {
@@ -632,7 +632,7 @@
                 "memory": "48Mi"
               }
             },
-            "image": "docker.io/library/rtl-tekton-runtime@sha256:9aa27f1dbc820d6cc64bd6c19f623f344e87d0d05dafbe479b06763085d6afa0",
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:52c0105cf588d03cae178fe5c96810b552dfdeee5a8ef4191d7e52f9e2dbe264",
             "imagePullPolicy": "Never",
             "name": "execute",
             "securityContext": {
@@ -717,7 +717,7 @@
                 "memory": "48Mi"
               }
             },
-            "image": "docker.io/library/rtl-tekton-runtime@sha256:9aa27f1dbc820d6cc64bd6c19f623f344e87d0d05dafbe479b06763085d6afa0",
+            "image": "docker.io/library/rtl-tekton-runtime@sha256:52c0105cf588d03cae178fe5c96810b552dfdeee5a8ef4191d7e52f9e2dbe264",
             "imagePullPolicy": "Never",
             "name": "execute",
             "securityContext": {
