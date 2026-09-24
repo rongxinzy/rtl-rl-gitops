@@ -74,7 +74,7 @@
     {
       "source": "infrastructure/storage/mnt-models.automount",
       "file": "sources/infrastructure/storage/mnt-models.automount",
-      "sha256": "867e906131dfab098690dbda07d6ef4c500a54eae47c17d7e392ce56159f8eed"
+      "sha256": "2260d581393c18d3651269aa958d23c64ad6aace096351ca6044de8c8fe32fd4"
     }
   ]
 }
