@@ -23,10 +23,10 @@ def lesson(family,w):
   output_width=w
  elif family=='mixed_signed_compare':
   output_fields=('mixed','signed_cmp')
-  interface=f'module dut(input [{w-1}:0] a,b, output mixed, output signed_cmp);'
-  body='assign mixed = ($signed(a) < b); assign signed_cmp = ($signed(a) < $signed(b));'
-  bad='assign mixed = ($signed(a) < b); assign signed_cmp = (a < b);'
-  declarations=f'reg [{w-1}:0] a,b; wire mixed,signed_cmp; dut u(.a(a),.b(b),.mixed(mixed),.signed_cmp(signed_cmp));'
+  interface=f'module dut(input signed [{w-1}:0] a,b, output mixed, output signed_cmp);'
+  body='wire ['+str(w-1)+':0] unsigned_b; assign unsigned_b=b; assign mixed=(a<unsigned_b); assign signed_cmp=(a<b);'
+  bad='wire ['+str(w-1)+':0] unsigned_b; assign unsigned_b=b; assign mixed=(a<unsigned_b); assign signed_cmp=(a<unsigned_b);'
+  declarations=f'reg signed [{w-1}:0] a,b; wire mixed,signed_cmp; dut u(.a(a),.b(b),.mixed(mixed),.signed_cmp(signed_cmp));'
   vectors=[]
   for a in range(1<<w):
    for b in range(1<<w):
@@ -37,10 +37,10 @@ def lesson(family,w):
   output_width=1
  elif family=='arithmetic_shift':
   output_fields=('logical_y','signed_y')
-  interface=f'module dut(input [{w-1}:0] a, output [{w-1}:0] logical_y, signed_y);'
-  body='assign logical_y = a >>> 1; assign signed_y = $signed(a) >>> 1;'
-  bad='assign logical_y = a >> 1; assign signed_y = a >>> 1;'
-  declarations=f'reg [{w-1}:0] a; wire [{w-1}:0] logical_y,signed_y; dut u(.a(a),.logical_y(logical_y),.signed_y(signed_y));'
+  interface=f'module dut(input signed [{w-1}:0] a, output [{w-1}:0] logical_y, signed_y);'
+  body=f'wire [{w-1}:0] unsigned_a; assign unsigned_a=a; assign logical_y = unsigned_a >>> 1; assign signed_y = a >>> 1;'
+  bad=f'wire [{w-1}:0] unsigned_a; assign unsigned_a=a; assign logical_y = unsigned_a >>> 1; assign signed_y = unsigned_a >>> 1;'
+  declarations=f'reg signed [{w-1}:0] a; wire [{w-1}:0] logical_y,signed_y; dut u(.a(a),.logical_y(logical_y),.signed_y(signed_y));'
   vectors=[]
   for a in range(1<<w):
    sign=a&(1<<(w-1)); vectors.append({'a':a,'logical_y':a>>1,'signed_y':((a>>1)|(1<<(w-1))) if sign else a>>1})
