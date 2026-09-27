@@ -154,7 +154,9 @@ def lesson(family,w):
 def messages(item):
  code='```verilog\n'+item['reference']+'```'
  trace=canonical(item['trace_inputs'])
+ legacy=item['lesson_id'].startswith('rtl-knowledge-v1:')
+ prediction=('根据下面RTL预测y，返回JSON数组。' if legacy else '根据下面RTL预测所有输出信号，返回JSON数组；每个数组元素是一个仅含输出信号名和值的JSON对象。')
  return [
   ('explain','解释下面电路依赖的RTL规则、输出更新条件和常见误用。\n'+code,item['rule']),
-  ('predict','根据下面RTL预测所有输出信号，返回JSON数组；每个数组元素是一个仅含输出信号名和值的JSON对象。'+item['sampling']+'\n'+code+'\n输入序列：'+trace,canonical(item['trace_outputs'])),
+  ('predict',prediction+item['sampling']+'\n'+code+'\n输入序列：'+trace,canonical(item['trace_outputs'])),
   ('repair','修复下面RTL，使其满足规则：'+item['rule']+' 保持接口不变，简述问题并给出完整模块。\n```verilog\n'+item['mutant']+'```',item['rule']+'\n'+code)]
