@@ -43,6 +43,11 @@ class Tests(unittest.TestCase):
     def test_fixed_aliases(self):
         body = self.executor.validate({'action_id': 'x', 'action': 'eval.baseline'})
         self.assertEqual(body['action'], 'evaluation.baseline')
+    def test_l20_trusted_profile_id(self):
+        params = {'dataset_id':'a'*64, 'evaluation_id':'b'*64, 'max_steps':20, 'profile_id':'llamafactory-native-remedial-v1'}
+        self.assertEqual(self.executor.validate({'action_id':'l20-profile', 'action':'l20.admit', 'params':params})['params']['profile_id'], params['profile_id'])
+        with self.assertRaises(ValueError):
+            self.executor.validate({'action_id':'l20-profile-bad', 'action':'l20.admit', 'params':{**params, 'profile_id':'../outside'}})
     def test_training_requires_evidence(self):
         executor = Executor(self.root, self.root / 'real')
         with self.assertRaises(FileNotFoundError):
