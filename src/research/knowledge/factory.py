@@ -41,7 +41,7 @@ def build():
   (folder/'sft_train.jsonl').write_text(''.join(canonical(r)+'\n' for r in rows));write(folder/'lessons.json',lessons);write(folder/'evidence.json',evidence);write(folder/'sources.json',src)
   files={p.name:sha(p.read_bytes()) for p in folder.iterdir() if p.is_file()}
   manifest={'dataset_id':ident,'kind':'knowledge_sft','identity':identity,'train':len(rows),'val':0,'files':files,'tasks':[{'task_id':r['task_id'],'split':'train','semantic_sha256':r['semantic_sha256']} for r in rows],
-   'scope':'54 authored instructional examples from 18 code lessons; not a full industrial corpus; evaluation stored separately','validated':True}
+   'scope':f'{len(rows)} authored instructional examples from {len(lessons)} executable code lessons; not a full industrial corpus; evaluation stored separately','validated':True}
   write(folder/'manifest.json',manifest)
   folder.rename(target)
  return {'status':'built','dataset_id':ident,'validated':True,'train':len(rows)}
