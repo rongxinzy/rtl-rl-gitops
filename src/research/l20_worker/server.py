@@ -63,6 +63,11 @@ class Handler(BaseHTTPRequestHandler):
      return self.reply(200,phase_control.abort(ROOT/'jobs'/parts[1],body))
     if len(parts)==3 and parts[0]=='jobs' and ID.fullmatch(parts[1]) and parts[2]=='phase':
      return self.reply(200,phase_control.authorize(ROOT/'jobs'/parts[1],body))
+    if len(parts)==3 and parts[0]=='jobs' and ID.fullmatch(parts[1]) and parts[2]=='comparison-recovery':
+     try:container=manager.inspect()
+     except Exception:return self.reply(503,{'error':'worker_inspection_unavailable'})
+     if container is not None:return self.reply(409,{'error':'worker_container_present'})
+     return self.reply(200,phase_control.recover_evaluation(ROOT/'jobs'/parts[1],body))
     if len(parts)==3 and parts[0]=='jobs' and ID.fullmatch(parts[1]) and parts[2]=='evaluation':
      return self.reply(200,compare_complete(ROOT/'jobs'/parts[1],body))
    finally:LOCK.release()
