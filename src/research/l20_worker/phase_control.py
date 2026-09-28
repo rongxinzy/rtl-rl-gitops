@@ -127,7 +127,39 @@ def recover_grant(folder,state):
  return state
 
 
-def cancelled(folder):return managed(folder) and bool(control(folder).get('cancel_requested'))
+def comparison_recovered(folder,value=None,state=None):
+ if not managed(folder):return False
+ value=value or control(folder)
+ state=state or json.loads((folder/'state.json').read_text())
+ recovery=value.get('comparison_recovery')
+ return (isinstance(recovery,dict) and state.get('comparison_recovery')==recovery
+         and recovery.get('job_sha256')==sha((folder/'job.json').read_bytes())
+         and recovery.get('run_uid')==value.get('run_uid')
+         and state.get('phase')=='awaiting_evaluation'
+         and value.get('cancel_requested') is True
+         and value.get('authorized')==list(PHASES)
+         and value.get('completed')==list(PHASES))
+
+def cancelled(folder):
+ if not managed(folder):return False
+ value=control(folder);state=json.loads((folder/'state.json').read_text())
+ return bool(value.get('cancel_requested')) and not comparison_recovered(folder,value,state)
+
+def recover_evaluation(folder,body):
+ if not isinstance(body,dict) or set(body)!={'run_uid'} or not isinstance(body['run_uid'],str) or not UID.fullmatch(body['run_uid']):raise ValueError('fixed evaluation recovery fields required')
+ if not managed(folder):raise ValueError('legacy job cannot use comparison recovery')
+ value=control(folder);state=json.loads((folder/'state.json').read_text());job_sha=sha((folder/'job.json').read_bytes())
+ if value.get('run_uid')!=body['run_uid']:raise ValueError('PipelineRun ownership mismatch')
+ if comparison_recovered(folder,value,state):return status(folder)
+ if not value.get('cancel_requested') or state.get('phase')!='failed' or state.get('reason')!='tekton_cancelled':raise ValueError('job is not a cancelled comparison candidate')
+ if value.get('authorized')!=list(PHASES) or value.get('completed')!=list(PHASES):raise ValueError('all training phases must be durably complete')
+ for phase in PHASES:
+  if not receipt_valid(folder,value,phase):raise ValueError('phase receipt changed')
+  verified(folder,phase)
+ recovery={'job_sha256':job_sha,'run_uid':body['run_uid'],'recovered_at':time.time(),'phases':list(PHASES)}
+ value['comparison_recovery']=recovery;atomic(folder/'phase-control.json',value)
+ state['comparison_recovery']=recovery;state['phase']='awaiting_evaluation';atomic(folder/'state.json',state)
+ return status(folder)
 
 def abort(folder,body):
  if not isinstance(body,dict) or set(body)!={'run_uid'} or not isinstance(body['run_uid'],str) or not UID.fullmatch(body['run_uid']):raise ValueError('fixed abort fields required')
