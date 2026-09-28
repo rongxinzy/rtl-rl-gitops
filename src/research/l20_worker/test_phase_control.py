@@ -161,10 +161,28 @@ class Tests(unittest.TestCase):
   self.grant('baseline');c.atomic(self.folder/'state.json',{'phase':'awaiting_evaluation'})
   p.abort(self.folder,{'run_uid':UID})
   with self.assertRaises(ValueError):c.compare_complete(self.folder,{'comparison_id':'a'*64,'outcome':'improved'})
+ def test_cancelled_job_reopens_only_for_verified_comparison(self):
+  for phase in p.PHASES:
+   with patch.object(p,'verify_phase',return_value={'status':'complete','step':20}):self.grant(phase)
+   self.finish(phase)
+  result=p.abort(self.folder,{'run_uid':UID})
+  self.assertTrue(result['cancel_requested'])
+  c.atomic(self.folder/'state.json',{'phase':'failed','reason':'tekton_cancelled','last_error':'tekton_cancelled','attempts':0})
+  with patch.object(p,'verify_phase',return_value={'status':'complete','step':20}):result=p.recover_evaluation(self.folder,{'run_uid':UID})
+  self.assertEqual(result['phase'],'awaiting_evaluation');self.assertTrue(result['cancel_requested'])
+  self.assertFalse(p.cancelled(self.folder));self.assertFalse(p.permitted(self.folder,'candidate'))
+  with patch('research.l20_worker.artifacts.verify_all'):
+   c.compare_complete(self.folder,{'comparison_id':'a'*64,'outcome':'unchanged'})
+  self.assertEqual(self.read()['phase'],'complete')
+  self.assertEqual(self.read()['reason'],'tekton_cancelled')
+ def test_comparison_recovery_rejects_other_run_and_incomplete_or_noncancelled_jobs(self):
+  self.grant('baseline');p.abort(self.folder,{'run_uid':UID})
+  c.atomic(self.folder/'state.json',{'phase':'failed','reason':'tekton_cancelled'})
+  with self.assertRaises(ValueError):p.recover_evaluation(self.folder,{'run_uid':OTHER})
+  with self.assertRaises(ValueError):p.recover_evaluation(self.folder,{'run_uid':UID})
  def test_global_status_exposes_bound_run(self):
   job=json.loads((self.folder/'job.json').read_text());job.update(dataset_id='d',freeze_id='f',max_steps=20);c.atomic(self.folder/'job.json',job)
   self.grant('baseline')
   with patch.object(c,'ROOT',self.root),patch.object(c,'config',return_value={}),patch.object(m.rotation,'ROOT',self.root),patch.object(m.rotation,'config',return_value={}):result=c.status()
   self.assertEqual(result['jobs'][0]['run_uid'],UID)
 if __name__=='__main__':unittest.main()
-
