@@ -55,11 +55,15 @@ def read_dataset(folder):
  proof=json.loads((folder/'evidence.json').read_text());lessons=json.loads((folder/'lessons.json').read_text());rows=[json.loads(x) for x in (folder/'sft_train.jsonl').read_text().splitlines()]
  if len(rows)!=m['train'] or len({r['task_id'] for r in rows})!=len(rows):raise ValueError('duplicate/count mismatch')
  by_id={x['lesson_id']:x for x in lessons}
+ targeted=m['identity'].get('target_format')=='trace-json-v2'
+ if targeted:
+  from .targeted import FORMAT, messages as targeted_messages
+  if m['identity'].get('target_builder_sha256')!=sha((HERE/'targeted.py').read_bytes()):raise ValueError('targeted builder provenance mismatch')
  for row in rows:
   key=row['task_id'].rsplit(':',1)[0];item=by_id[key];p=proof[key]
   if row['split']!='train' or row['validation_level']!='K1-grounded' or row['knowledge_evidence_sha256']!=sha(canonical(p)) or row['knowledge_source_sha256']!=sha(canonical(src)):raise ValueError('unverified knowledge row')
   if p['reference']['status']!='pass' or p['mutant']['simulation']['status']!='fail' or p['reference_sha256']!=sha(item['reference']) or p['testbench_sha256']!=sha(item['testbench']):raise ValueError('invalid code evidence')
-  expected=next((q,a) for kind,q,a in messages(item) if kind==row['kind'])
+  expected=targeted_messages(item) if targeted else next((q,a) for kind,q,a in messages(item) if kind==row['kind'])
   if [v['content'] for v in row['messages']]!=list(expected):raise ValueError('unreviewed knowledge content')
  return m
 

@@ -115,6 +115,7 @@
   "src/research/knowledge/curriculum.py",
   "src/research/knowledge/evaluation.py",
   "src/research/knowledge/factory.py",
+  "src/research/knowledge/targeted.py",
   "src/research/l20_worker/README.md",
   "src/research/l20_worker/artifacts.py",
   "src/research/l20_worker/common.py",
