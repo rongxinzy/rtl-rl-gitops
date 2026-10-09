@@ -34,8 +34,8 @@
           "spec": {
             "containers": [
               {
-                "image": "docker.io/library/created-at-shim:latest",
-                "imagePullPolicy": "Never",
+                "image": "172.18.5.251:8081/zhiyuan/created-at-shim:latest",
+                "imagePullPolicy": "IfNotPresent",
                 "name": "shim",
                 "ports": [
                   {
@@ -113,8 +113,8 @@
                   "-g",
                   "daemon off;"
                 ],
-                "image": "docker.io/library/rtl-new-api-ingress:20260913",
-                "imagePullPolicy": "Never",
+                "image": "172.18.5.251:8081/zhiyuan/rtl-new-api-ingress:20260913",
+                "imagePullPolicy": "IfNotPresent",
                 "lifecycle": {
                   "preStop": {
                     "exec": {
@@ -248,8 +248,8 @@
                     }
                   }
                 ],
-                "image": "docker.io/calciumion/new-api:rtl-pinned-main-9e905a8",
-                "imagePullPolicy": "Never",
+                "image": "172.18.5.251:8081/zhiyuan/new-api:rtl-pinned-main-9e905a8",
+                "imagePullPolicy": "IfNotPresent",
                 "livenessProbe": {
                   "failureThreshold": 3,
                   "httpGet": {
