@@ -45753,8 +45753,8 @@
                     }
                   }
                 ],
-                "image": "quay.io/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
-                "imagePullPolicy": "Never",
+                "image": "harbor.zhiyuan.local:30443/quay/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
+                "imagePullPolicy": "IfNotPresent",
                 "name": "argocd-applicationset-controller",
                 "ports": [
                   {
@@ -46058,8 +46058,8 @@
                   "/usr/local/bin/argocd",
                   "/shared/argocd-dex"
                 ],
-                "image": "quay.io/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
-                "imagePullPolicy": "Never",
+                "image": "harbor.zhiyuan.local:30443/quay/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
+                "imagePullPolicy": "IfNotPresent",
                 "name": "copyutil",
                 "securityContext": {
                   "allowPrivilegeEscalation": false,
@@ -46122,7 +46122,8 @@
               }
             ]
           }
-        }
+        },
+        "replicas": 0
       }
     },
     {
@@ -46260,8 +46261,8 @@
                     }
                   }
                 ],
-                "image": "quay.io/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
-                "imagePullPolicy": "Never",
+                "image": "harbor.zhiyuan.local:30443/quay/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
+                "imagePullPolicy": "IfNotPresent",
                 "livenessProbe": {
                   "tcpSocket": {
                     "port": 9001
@@ -46431,8 +46432,8 @@
                     }
                   }
                 ],
-                "image": "public.ecr.aws/docker/library/redis@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba",
-                "imagePullPolicy": "Never",
+                "image": "harbor.zhiyuan.local:30443/zhiyuan/redis@sha256:1fe884acb414b04494e9bae89b737fc33e5d0bb344cf26419d5d7c5dc26dd181",
+                "imagePullPolicy": "IfNotPresent",
                 "name": "redis",
                 "ports": [
                   {
@@ -46457,8 +46458,8 @@
                   "admin",
                   "redis-initial-password"
                 ],
-                "image": "quay.io/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
-                "imagePullPolicy": "Never",
+                "image": "harbor.zhiyuan.local:30443/quay/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
+                "imagePullPolicy": "IfNotPresent",
                 "name": "secret-init",
                 "securityContext": {
                   "allowPrivilegeEscalation": false,
@@ -46986,8 +46987,8 @@
                     "value": "10s"
                   }
                 ],
-                "image": "quay.io/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
-                "imagePullPolicy": "Never",
+                "image": "harbor.zhiyuan.local:30443/quay/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
+                "imagePullPolicy": "IfNotPresent",
                 "livenessProbe": {
                   "failureThreshold": 3,
                   "httpGet": {
@@ -47087,7 +47088,7 @@
                   "sh",
                   "-c"
                 ],
-                "image": "quay.io/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
+                "image": "harbor.zhiyuan.local:30443/quay/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
                 "name": "copyutil",
                 "securityContext": {
                   "allowPrivilegeEscalation": false,
@@ -47108,7 +47109,7 @@
                     "name": "var-files"
                   }
                 ],
-                "imagePullPolicy": "Never"
+                "imagePullPolicy": "IfNotPresent"
               }
             ],
             "nodeSelector": {
@@ -47899,8 +47900,8 @@
                     }
                   }
                 ],
-                "image": "quay.io/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
-                "imagePullPolicy": "Never",
+                "image": "harbor.zhiyuan.local:30443/quay/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
+                "imagePullPolicy": "IfNotPresent",
                 "livenessProbe": {
                   "httpGet": {
                     "path": "/healthz?full=true",
@@ -48700,8 +48701,8 @@
                     "value": "/tmp/kubecache"
                   }
                 ],
-                "image": "quay.io/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
-                "imagePullPolicy": "Never",
+                "image": "harbor.zhiyuan.local:30443/quay/argoproj/argocd@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b",
+                "imagePullPolicy": "IfNotPresent",
                 "name": "argocd-application-controller",
                 "ports": [
                   {
