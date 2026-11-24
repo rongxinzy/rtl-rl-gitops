@@ -188,8 +188,8 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": true,
-            "selfHeal": true,
+            "enabled": false,
+            "selfHeal": false,
             "prune": false,
             "allowEmpty": false
           },
@@ -272,8 +272,8 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": true,
-            "selfHeal": true,
+            "enabled": false,
+            "selfHeal": false,
             "prune": false,
             "allowEmpty": false
           },
@@ -356,8 +356,8 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": true,
-            "selfHeal": true,
+            "enabled": false,
+            "selfHeal": false,
             "prune": false,
             "allowEmpty": false
           },
@@ -440,8 +440,8 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": true,
-            "selfHeal": true,
+            "enabled": false,
+            "selfHeal": false,
             "prune": false,
             "allowEmpty": false
           },
@@ -524,8 +524,8 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": true,
-            "selfHeal": true,
+            "enabled": false,
+            "selfHeal": false,
             "prune": false,
             "allowEmpty": false
           },
@@ -608,8 +608,8 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": true,
-            "selfHeal": true,
+            "enabled": false,
+            "selfHeal": false,
             "prune": false,
             "allowEmpty": false
           },
@@ -692,8 +692,8 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": true,
-            "selfHeal": true,
+            "enabled": false,
+            "selfHeal": false,
             "prune": false,
             "allowEmpty": false
           },
@@ -776,8 +776,8 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": true,
-            "selfHeal": true,
+            "enabled": false,
+            "selfHeal": false,
             "prune": false,
             "allowEmpty": false
           },
@@ -860,8 +860,8 @@
         },
         "syncPolicy": {
           "automated": {
-            "enabled": true,
-            "selfHeal": true,
+            "enabled": false,
+            "selfHeal": false,
             "prune": false,
             "allowEmpty": false
           },
